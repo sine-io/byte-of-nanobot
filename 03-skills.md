@@ -314,4 +314,4 @@ nanobot 会从两个地方查找 Skill（可从 `nanobot/agent/skills.py` 的 `l
 
 ---
 
-[← 上一章：给 Bot 一个灵魂](02-soul.md) | [下一章：部署到聊天平台 →](04-deploy.md)
+[← 上一章：用 Markdown 定义 Bot](02-soul.md) | [下一章：先部署到 Telegram →](04-deploy.md)

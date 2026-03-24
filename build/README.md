@@ -19,6 +19,7 @@
 | [第 3 章：记忆与上下文](03-memory-and-context.md) | ~300 行 | 有记忆、有人格的 Agent | `agent/context.py`, `agent/memory.py`, `session/` |
 | [第 4 章：消息总线](04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
 | [第 5 章：技能与扩展](05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py`, `cron/` |
+| [第 6 章：从 Mini Agent 到真实项目](06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版过渡到可维护项目 | 工程化边界、安全、并发、重试 |
 
 ## 前置要求
 
@@ -53,6 +54,8 @@ pip install openai
 1. 先跑通当前章节代码，确认最小示例可运行
 2. 再对照对应的 nanobot 模块，看真实实现多解决了哪些工程问题
 3. 如果示例代码和仓库实现不完全一致，优先把它理解成“教学简化版”
+
+如果你的目标已经不是“理解原理”，而是“开始做自己的 bot 项目”，建议读完第 5 章后继续看第 6 章。第 6 章会专门说明教学版和真实项目之间还差哪些工程能力，以及应该先补什么、后补什么。
 
 每章都建议做两类验证：
 

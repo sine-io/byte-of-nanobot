@@ -240,13 +240,14 @@ Provider        AgentLoop         Channels
 
 ## 你接下来可以做什么？
 
-1. **读 nanobot 源码**：现在你已经理解了架构，读源码会非常顺畅
-2. **给你的 Mini Agent 加功能**：
+1. **先读下一章**：如果你准备把教学版继续发展成自己的项目，先看第 6 章，明确工程化边界
+2. **读 nanobot 源码**：现在你已经理解了架构，读源码会非常顺畅
+3. **给你的 Mini Agent 加功能**：
    - 加一个 `web_search` 工具（用 Brave Search API）
    - 实现记忆整合（第 3 章的 `consolidate_memory`）
    - 接入 Telegram（第 4 章的 TelegramChannel）
-3. **创建你自己的 Skills**：查天气、查汇率、操作 GitHub...
-4. **贡献 nanobot**：项目欢迎 PR，代码库刻意保持精简
+4. **创建你自己的 Skills**：查天气、查汇率、操作 GitHub...
+5. **贡献 nanobot**：项目欢迎 PR，代码库刻意保持精简
 
 ## 本章你真正学到的抽象
 
@@ -300,4 +301,4 @@ Chatbot     Agent      有个性     Gateway    Skills
 
 ---
 
-[← 上一章：消息总线](04-message-bus.md) | [回到目录](README.md)
+[← 上一章：消息总线](04-message-bus.md) | [下一章：从 Mini Agent 到真实项目 →](06-from-mini-agent-to-real-bot.md) | [回到目录](README.md)

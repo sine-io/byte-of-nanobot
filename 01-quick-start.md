@@ -189,4 +189,4 @@ workspace/
 
 ---
 
-[下一章：给 Bot 一个灵魂 →](02-soul.md)
+[下一章：用 Markdown 定义 Bot →](02-soul.md)

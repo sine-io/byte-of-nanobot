@@ -1,0 +1,303 @@
+# 第 5 章：做一个真实可用的 Bot
+
+> 目标：把前四章真正串起来，做出一个能在 Telegram 上工作的财务顾问 Bot。
+
+## 5.1 这章要完成什么
+
+前四章分别解决了四件事：
+
+- 第 1 章：让 nanobot 跑起来
+- 第 2 章：让 Bot 有人格、规则和用户画像
+- 第 3 章：让 Bot 学会一个新技能
+- 第 4 章：让 Bot 接入 Telegram
+
+这一章不再新增新概念，而是把这些部分拼成一个完整项目。做完后，你会得到一个真正能用的 `FinBot`：
+
+- 在 Telegram 上和你聊天
+- 用你定义的风格回答问题
+- 遵守你写在 `AGENTS.md` 里的分析流程
+- 在需要时调用汇率 Skill
+
+## 5.2 先定清楚：这个 Bot 是干什么的
+
+我们这次做一个**个人财务顾问 Bot**。它的职责很具体：
+
+- 回答基础财务规划问题
+- 根据你的风险偏好调整建议
+- 需要汇率时调用 `exchange-rate` Skill
+- 不给出激进的投机建议
+
+这里有一个重要原则：**先把职责收窄，再谈能力扩展。** 一个“什么都能做”的 Bot 往往最难调好；一个边界明确的 Bot 反而更稳定。
+
+## 5.3 配好工作区文件
+
+先准备 4 个文件。
+
+### `SOUL.md`
+
+编辑 `~/.nanobot/workspace/SOUL.md`：
+
+```markdown
+# Soul
+
+我是 FinBot，一个专业、谨慎、结构化的个人财务顾问。
+
+## Personality
+
+- 严谨、克制、清晰
+- 不夸大收益，不故作确定
+- 面对不完整信息时先补充假设
+
+## Values
+
+- 用户的财务安全优先于“听起来厉害”
+- 不推荐自己无法解释清楚的产品
+- 尊重风险承受能力差异
+
+## Communication Style
+
+- 先总结问题，再分析，再给建议
+- 涉及金额时注明币种
+- 重要风险单独列出
+```
+
+### `AGENTS.md`
+
+编辑 `~/.nanobot/workspace/AGENTS.md`：
+
+```markdown
+# Agent Instructions
+
+你是一个个人财务顾问 Bot。
+
+## 回答流程
+
+1. 先复述问题，确认理解
+2. 列出关键假设和已知信息
+3. 再给建议，不要直接跳结论
+4. 涉及不确定数据时优先查证
+
+## 禁止事项
+
+- 不给出具体股票买卖时机建议
+- 不承诺收益
+- 不把教育性信息说成个性化投资建议
+```
+
+### `USER.md`
+
+编辑 `~/.nanobot/workspace/USER.md`：
+
+```markdown
+# User Profile
+
+## Basic Information
+
+- **Name**: 小明
+- **Language**: 中文
+- **Timezone**: UTC+8
+
+## Preferences
+
+- 风险偏好：稳健型
+- 关注领域：储蓄、指数基金、保险
+- 输出偏好：喜欢表格和分点说明
+
+## Special Instructions
+
+- 默认用人民币
+- 涉及汇率时说明数据来源
+```
+
+### `TOOLS.md`
+
+编辑 `~/.nanobot/workspace/TOOLS.md`：
+
+```markdown
+# Tool Usage Notes
+
+## exec
+
+- 优先执行短命令
+- 如果是外部数据查询，说明所用来源
+
+## web_search / web_fetch
+
+- 只在问题需要最新信息时使用
+- 不要复制整篇文章
+```
+
+## 5.4 给它一个真正有用的 Skill
+
+延续第 3 章，我们给它加一个 `exchange-rate` Skill。目录结构：
+
+```text
+~/.nanobot/workspace/
+└── skills/
+    └── exchange-rate/
+        └── SKILL.md
+```
+
+`SKILL.md` 示例：
+
+创建 `~/.nanobot/workspace/skills/exchange-rate/SKILL.md`：
+
+```markdown
+---
+name: exchange-rate
+description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
+---
+
+# Exchange Rate
+
+Use the free ExchangeRate API (no key required).
+
+## Query current rate
+
+\```bash
+curl -s "https://open.er-api.com/v6/latest/USD" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(f\"1 USD = {data['rates']['CNY']} CNY\")
+"
+\```
+```
+
+这个 Skill 的价值不在于“多一个文件”，而在于它把“汇率怎么查”这件事从 Bot 主体里剥离了出去。Bot 本身不需要硬编码汇率逻辑，只需要在合适的时候读取 Skill 并调用已有工具。
+
+## 5.5 接到 Telegram
+
+在 `~/.nanobot/config.json` 中至少保证下面几项存在：
+
+```json
+{
+  "providers": {
+    "openrouter": {
+      "apiKey": "sk-or-v1-你的密钥"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "anthropic/claude-sonnet-4-6"
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "你的Bot Token",
+      "allowFrom": ["你的Telegram用户ID"]
+    }
+  }
+}
+```
+
+然后启动：
+
+```bash
+nanobot gateway
+```
+
+如果日志里看到了 Telegram channel 已启用，就去 Telegram 给 Bot 发第一条消息。
+
+如果没有回复，先回到[第 4 章：先部署到 Telegram](04-deploy.md)里的排障清单，优先检查 `allowFrom`、token 和 `gateway` 日志。
+
+## 5.6 做一次完整对话
+
+你可以用下面三轮来验证它是不是真的“串起来了”。
+
+### 第 1 轮：看人格和流程
+
+```text
+我每个月能存 5000 元，应该先做什么理财准备？
+```
+
+你希望看到：
+
+- 它先复述你的问题
+- 它按结构化方式回答
+- 它不会直接给激进建议
+
+### 第 2 轮：看用户画像
+
+```text
+按我的风险偏好，你会先关注哪些方向？
+```
+
+你希望看到：
+
+- 它提到“稳健型”
+- 它默认用人民币表达
+- 输出偏好更接近表格或分点
+
+### 第 3 轮：看 Skill 是否真的被用到
+
+```text
+1000 美元大概等于多少人民币？请说明你使用了什么数据来源。
+```
+
+你希望看到：
+
+- 它调用 `exchange-rate` Skill
+- 它给出汇率结果
+- 它说明数据来源，而不是只给一个裸数字
+
+## 5.7 回头解释：为什么它能工作
+
+这一整套链路可以压缩成一张图：
+
+```text
+Telegram 消息
+   ↓
+gateway / MessageBus
+   ↓
+AgentLoop
+   ↓
+System Prompt
+  ├── SOUL.md
+  ├── AGENTS.md
+  ├── USER.md
+  ├── TOOLS.md
+  └── Skills Summary
+   ↓
+需要汇率时读取 exchange-rate/SKILL.md
+   ↓
+调用工具获取结果
+   ↓
+回到 Telegram
+```
+
+也就是说：
+
+- `SOUL.md` 决定它像谁
+- `AGENTS.md` 决定它怎么做事
+- `USER.md` 决定它如何理解你
+- `SKILL.md` 决定它在特定领域里知道怎么行动
+- `gateway` 决定它能不能出现在真实聊天平台里
+
+## 5.8 最终检查清单
+
+做完这一章，至少确认下面 6 项：
+
+1. `nanobot gateway` 能持续运行
+2. Telegram 上能正常收到回复
+3. 回复风格明显受 `SOUL.md` 影响
+4. 回答流程明显受 `AGENTS.md` 影响
+5. 个性化内容明显受 `USER.md` 影响
+6. 涉及汇率时能触发 `exchange-rate` Skill
+
+如果这 6 项都成立，你就不是“学完四篇文档”而已，而是真的做出了一个自己的 Bot。
+
+## 5.9 到这里你已经会了什么
+
+现在你已经能：
+
+- 用配置和 Markdown 文件定制一个 Bot
+- 用 Skill 扩展一个 Bot
+- 把 Bot 部署到真实聊天平台
+- 解释这套行为背后的主干架构
+
+如果你更关心“它为什么能这样工作”，下一步就去读 Part 2。那里会从 40 行代码开始，一步一步把教学版 Agent 搭出来。
+
+---
+
+[← 上一章：先部署到 Telegram](04-deploy.md) | [回到目录](README.md) | [继续：从零复刻 nanobot →](build/README.md)
