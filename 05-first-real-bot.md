@@ -329,7 +329,3 @@ System Prompt
 - 解释这套行为背后的主干架构
 
 如果你更关心“它为什么能这样工作”，下一步就去读 Part 2。那里会从 40 行代码开始，一步一步把教学版 Agent 搭出来。
-
----
-
-[← 上一章：先部署到 Telegram](04-deploy.md) | [排障附录](appendix-troubleshooting.md) | [回到目录](README.md) | [继续：从零复刻 nanobot →](build/README.md)

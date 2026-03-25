@@ -331,7 +331,3 @@ Chatbot     Agent      有个性     Gateway    Skills
 | 5 | Skills | 动态注入领域知识，不改代码扩展能力 |
 
 这就是一个 AI Agent 框架的全部核心。nanobot 用数千行级别的工程实现把它做稳，我们用 350 行教学代码把它讲清楚。
-
----
-
-[← 上一章：消息总线](04-message-bus.md) | [下一章：从 Mini Agent 到真实项目 →](06-from-mini-agent-to-real-bot.md) | [回到目录](README.md)

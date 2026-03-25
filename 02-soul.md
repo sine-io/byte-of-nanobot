@@ -301,7 +301,3 @@ def _load_bootstrap_files(self):
 - `TOOLS.md` 不生效：工具使用约束属于提示词引导，不是强权限控制；真正的硬限制还要看工具层和配置层
 
 如果你已经分不清问题是在 Markdown 文件分工、提问方式，还是底层工具约束上，先看[附录：常见坑与排障](appendix-troubleshooting.md)。
-
----
-
-[← 上一章：5 分钟跑起来](01-quick-start.md) | [排障附录](appendix-troubleshooting.md) | [下一章：教 Bot 新技能 →](03-skills.md)

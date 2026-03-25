@@ -407,7 +407,3 @@ nanobot 会从两个地方查找 Skill（可从 `nanobot/agent/skills.py` 的 `l
 1. **入门**：创建一个 `translator` Skill，让 Bot 在翻译时遵循特定规则（比如保留专有名词不翻译）
 2. **进阶**：创建一个带 `scripts/` 的 Skill，比如一个自动格式化 JSON 的工具
 3. **挑战**：创建一个带 `references/` 的 Skill，比如一个查询你公司内部 API 文档的技能
-
----
-
-[← 上一章：用 Markdown 定义 Bot](02-soul.md) | [排障附录](appendix-troubleshooting.md) | [下一章：先部署到 Telegram →](04-deploy.md)

@@ -597,7 +597,3 @@ Bot: 运行结果：Hello, World!
 - 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
 
 下一章解决这些问题。
-
----
-
-[← 上一章：最简 Agent](01-simplest-agent.md) | [下一章：记忆与上下文 →](03-memory-and-context.md)

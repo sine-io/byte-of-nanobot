@@ -141,7 +141,3 @@ class Session:
 - 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
 
 下一章我们加上工具系统，让它从"聊天机器人"变成"AI Agent"。
-
----
-
-[下一章：工具系统 →](02-tool-system.md)
