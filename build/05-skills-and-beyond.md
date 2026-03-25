@@ -95,6 +95,8 @@ class SkillsLoader:
         return path.parent.name
 ```
 
+> 这个 `_get_description` 是故意写小的教学版，只解析**单行** `description:`。它足够说明“先扫元信息，再按需加载正文”的原理，但不等于生产实现。真实项目应使用完整的 frontmatter/YAML 解析，并把 `description` 视为技能匹配的主要线索，而不是唯一决定因素。
+
 ### 渐进式加载的三层设计
 
 nanobot 不会把所有 Skill 的完整内容都塞进 System Prompt。它用**三层加载**：

@@ -247,13 +247,11 @@ metadata: {"nanobot": {...}} # 可选：依赖声明、图标等
 
 ### description 是最重要的字段
 
-`description` 是 Agent 判断"要不要使用这个 Skill"的**唯一依据**。写不好就不会被触发。
+`description` 是 Agent 判断"要不要读这个 Skill"的**首要线索**，也是你最该认真写的字段。写不好，Skill 往往就不会被触发；但它也不是唯一变量，用户问题表述、当前模型偏好、环境里是否有可用依赖，都会影响最终行为。
 
 好的写法：
 ```yaml
-description: Query real-time exchange rates between currencies.
-  Use when the user asks about currency conversion, exchange rates,
-  or foreign currency prices.
+description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
 ```
 
 差的写法：
@@ -262,6 +260,8 @@ description: Exchange rate tool
 ```
 
 原则：**告诉 Agent 这个 Skill 干什么 + 什么情况下该用它。**
+
+补一个教学版约束：为了兼容 Part 2 里简化版的 `SkillsLoader`，这里建议先把 `description` 写成**单行**。真实 nanobot 的 frontmatter 解析更完整，但教学版为了突出原理，故意只演示最小实现。
 
 ### always 标记
 
