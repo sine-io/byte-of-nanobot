@@ -135,6 +135,11 @@ class Session:
 - 第二轮像没记忆：通常是 `messages.append(...)` 的顺序写错，或者没有把 assistant 回复也放回历史
 - 返回结构不符合预期：不同 OpenAI 兼容接口在字段细节上可能略有差异，先打印 `response` 检查真实返回
 
+## 配套示例
+
+- 对应代码快照：[examples/part2/ch01-mini-agent.py](../examples/part2/ch01-mini-agent.py)
+- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
+
 下一章我们加上工具系统，让它从"聊天机器人"变成"AI Agent"。
 
 ---

@@ -38,3 +38,6 @@ nav:
       - 第 4 章：消息总线: build/04-message-bus.md
       - 第 5 章：技能与扩展: build/05-skills-and-beyond.md
       - 第 6 章：从 Mini Agent 到真实项目: build/06-from-mini-agent-to-real-bot.md
+  - 附录:
+      - 常见坑与排障: appendix-troubleshooting.md
+      - Part 2 配套示例: examples/part2/README.md

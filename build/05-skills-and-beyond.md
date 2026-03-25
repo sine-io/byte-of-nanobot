@@ -27,6 +27,17 @@ curl -s "wttr.in/Beijing?format=3"
 
 Agent 读到这个 Skill 后，下次用户问"北京天气怎么样"，它就知道该用 `exec` 执行 `curl` 命令了。
 
+### 为什么 Skill 不是 Tool
+
+这里一定要把边界掰开：
+
+- `Tool` 解决的是“Agent **能不能做** 这件事”
+- `Skill` 解决的是“Agent **知不知道什么时候该做、该怎么做** 这件事”
+
+比如 `exec` 这个工具早就已经给了 Agent“执行命令”的能力；`weather` Skill 做的，是补上“查天气时应该执行什么命令”这部分知识。
+
+如果你把两者混为一谈，系统就会越来越臃肿：每新增一个场景，都要往底层代码里塞一个新工具。
+
 ## 实现 SkillsLoader
 
 对应 `nanobot/agent/skills.py`（229 行）：
@@ -173,6 +184,17 @@ URL-encode spaces: `wttr.in/New+York`
 
 **没有任何代码改动。**
 
+### 什么时候该用 `scripts/`
+
+第一次教学时，直接把命令写进 `SKILL.md` 很方便。但当某段逻辑开始变长、变脆弱、需要重复使用时，就应该考虑把它下沉成 `scripts/`：
+
+- 命令特别长
+- 解析逻辑开始依赖多步转换
+- 你希望同样操作每次都更稳定
+- 你不希望模型在执行前随意改写关键步骤
+
+Skill 负责告诉 Agent“什么时候调用这个脚本”；脚本负责把事情稳定做对。
+
 ## 架构全景
 
 经过五章的构建，我们的 Agent 已经拥有了 nanobot 的核心架构：
@@ -279,6 +301,13 @@ Provider        AgentLoop         Channels
 - Skill 很长但效果很差：通常是写成了文档，而不是写成了 Agent 可执行的操作说明
 - 什么都往 Skill 里塞：如果需要稳定的输入输出、确定性执行和强校验，应该下沉成 Tool 或脚本，而不是只靠提示词
 - workspace skill 没覆盖 builtin：先检查目录名，再检查扫描顺序，不要只看 frontmatter 的 `name`
+
+## 配套示例
+
+- 对应代码快照：[examples/part2/ch05-skills-loader.py](../examples/part2/ch05-skills-loader.py)
+- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
+
+这个示例聚焦在 `SkillsLoader` 和技能摘要构建上，因为第 5 章真正新增的抽象核心就在这里。
 
 ---
 

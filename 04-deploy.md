@@ -19,13 +19,32 @@
 
 Telegram 是最容易上手的平台。
 
+### 接平台前，先确认这 3 件事
+
+在继续之前，先停 30 秒确认：
+
+1. 你已经能用 `nanobot agent -m "你好"` 在 CLI 中拿到正常回复
+2. 你改过 `SOUL.md` 或 `AGENTS.md`，并观察到回复确实发生变化
+3. 你至少让一个 Skill 成功触发过一次
+
+如果这 3 条还没成立，建议先回到前 3 章。否则你接下来一旦收不到 Telegram 回复，会很难判断问题到底出在平台、配置还是 Bot 本身。
+
 ### 第一步：创建 Telegram Bot
 
 1. 在 Telegram 里搜索 `@BotFather`
 2. 发送 `/newbot`，按提示设置名字
 3. 复制得到的 Bot Token（格式类似 `123456:ABC-DEF...`）
 
-### 第二步：配置
+### 第二步：找到你的 Telegram 数字用户 ID
+
+`allowFrom` 需要的不是用户名，而是你的 **数字用户 ID**。最简单的取法通常有两种：
+
+1. 直接给一些常见的 Telegram ID 查询机器人发消息，读取它返回的数字 ID
+2. 暂时把 `allowFrom` 设成 `["*"]` 做一次本地验证，从日志或调试输出中拿到你的发送者 ID，再立刻改回只允许自己
+
+无论哪种方式，最终都应该拿到类似 `123456789` 这样的纯数字字符串。
+
+### 第三步：配置
 
 在第 1 章已经可用的 `~/.nanobot/config.json` 基础上，至少补齐下面两段；如果 provider 或 model 还没配好，先回到第 1 章完成：
 
@@ -47,7 +66,22 @@ Telegram 是最容易上手的平台。
 > 第一次上线前，先确认两件事：`allowFrom` 先只放你自己的 **Telegram 数字用户 ID**；`tools.restrictToWorkspace` 先设为 `true`。
 > `allowFrom` 是安全白名单。**空数组 `[]` 会拒绝所有人**，设为 `["*"]` 允许任何人。这里要填的是类似 `123456789` 这样的数字 ID，不是用户名，也不带 `@`。
 
-### 第三步：启动
+#### 最容易配错的字段：`allowFrom`
+
+第一次接 Telegram，最常见的误区不是 token，而是 `allowFrom`：
+
+- 填 `@username`：错，应该填数字 ID
+- 填空数组 `[]`：这会拒绝所有人
+- 长时间保留 `["*"]`：可以临时调试，不建议长期这么放
+- 以为“Bot 在线但不回复”一定是 gateway 坏了：很多时候只是白名单没放行
+
+所以第一次最稳的配置是：
+
+```json
+"allowFrom": ["你的Telegram数字用户ID"]
+```
+
+### 第四步：启动
 
 ```bash
 nanobot gateway
@@ -68,6 +102,9 @@ nanobot gateway
 2. 日志里是否显示 `Channels enabled: telegram`
 3. `allowFrom` 是否真的包含你的 Telegram 数字用户 ID
 4. Bot Token 是否来自正确的 Bot，而不是旧 token
+5. provider 和 model 是否本来就在 CLI 模式下可用
+
+第一次部署时，建议**先用前台运行的 `nanobot gateway` 调通**，不要一开始就放进 `systemd` 或 Docker。先把“能不能收到消息并回复”这条最短链路跑通，再做后台运行。
 
 ## 4.3 为什么先从 Telegram 开始
 
@@ -305,6 +342,16 @@ docker run -v ~/.nanobot:/root/.nanobot -p 18790:18790 nanobot gateway
 - Bot 在线但不回复：先检查 `allowFrom`、平台回调权限和日志报错
 - 回复串台：检查 `chat_id` / `session_key` 的隔离逻辑，而不是只看最终文本
 - Docker 中能启动但平台不可达：通常是挂载配置没进去，或容器内缺少本地依赖
+
+如果你想快速缩小范围，最有效的顺序是：
+
+1. 先确认 CLI 模式本来就能回复
+2. 再确认 `gateway` 进程持续存活
+3. 再确认 Telegram channel 已启用
+4. 再确认 `allowFrom` 放行了你自己
+5. 最后才去怀疑平台侧或 Docker/systemd
+
+如果你已经分不清问题是在 CLI、Skill、provider，还是 Telegram 这一层，先回到[附录：常见坑与排障](appendix-troubleshooting.md)按分层方式排查。
 
 ---
 

@@ -2,6 +2,16 @@
 
 > 让 Agent 有记忆、有个性、能管理上下文窗口。
 
+## 这一章一次解决 3 个问题
+
+如果你觉得这一章信息量突然变大，这是正常的。因为它不是只补一个点，而是同时补齐了 3 个在上一章已经暴露出来的缺口：
+
+- 对话重启后会失忆
+- system prompt 太薄，Bot 没有稳定个性
+- 历史消息会不断增长，最终撑爆上下文窗口
+
+所以读这一章时，最好始终问自己：**当前这一段代码是在解决“记不住”、 “不像自己”，还是“放不下”这三个问题里的哪一个？**
+
 ## 三个问题
 
 上一章的 Agent 有三个硬伤：
@@ -236,6 +246,16 @@ Respond in JSON: {{"history": "summary for log", "memory": "updated memory markd
 
 nanobot 的实现更精巧——它通过 function calling 让 LLM 调用 `save_memory` 工具来保存结果，比解析 JSON 更可靠（`nanobot/agent/memory.py:69-157`）。
 
+### 先别把这三个概念混在一起
+
+| 概念 | 它解决什么 | 它存什么 |
+|---|---|---|
+| `Session` | 当前会话历史别丢 | 原始对话消息 |
+| `Context Builder` | 每轮发给模型什么上下文 | system prompt + 历史 + 运行时信息 |
+| `Memory` | 长对话里重要事实别丢 | 提炼后的长期事实和摘要 |
+
+很多初学者会把“重启后还记得”和“长期记忆已经整合”混成一件事。实际上这是两层不同机制。
+
 ## 本章你真正学到的抽象
 
 这一章真正引入了 3 个长期有效的设计点：
@@ -263,6 +283,14 @@ nanobot 的实现更精巧——它通过 function calling 让 LLM 调用 `save_
 - 上下文仍然爆掉：说明你只有“保存历史”，没有真正限制传给模型的历史窗口
 
 ## 完整代码
+
+在看完整代码前，先记住本章新增的职责切分：
+
+- `SessionManager`：负责把会话历史保存和读回来
+- `ContextBuilder`：负责把静态文件、记忆和运行时信息拼成完整上下文
+- `MemoryStore` / `consolidate_memory()`：负责把旧消息折叠成长期记忆
+
+带着这 3 个问题去看代码，会比直接从头扫到尾轻松很多。
 
 ```python
 """mini_agent.py — 带记忆和个性的 Agent，~300 行"""
@@ -557,6 +585,11 @@ Bot: 你叫小明，你喜欢用 Python。
 Agent 现在有记忆、有个性，但它只能在终端里用。如果想让它在 Telegram / Discord 上工作呢？
 
 下一章：消息总线——解耦 Agent 和 I/O。
+
+## 配套示例
+
+- 对应代码快照：[examples/part2/ch03-mini-agent-with-memory.py](../examples/part2/ch03-mini-agent-with-memory.py)
+- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
 
 ---
 

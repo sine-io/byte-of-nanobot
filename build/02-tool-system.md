@@ -2,6 +2,16 @@
 
 > 让 Agent 从"只会说话"变成"能做事"。这是 chatbot 和 agent 的分水岭。
 
+## 相对上一章，只新增了什么
+
+如果你刚从第 1 章过来，先不要急着看完整代码。本章其实只新增了 3 个东西：
+
+1. `Tool`：把“能做什么”声明给模型
+2. `ToolRegistry`：把工具的注册和执行入口统一起来
+3. `ReAct Loop`：让模型可以“想一下 -> 调工具 -> 看结果 -> 再想一下”
+
+你可以先把本章当成是在回答一个问题：**为什么同样是聊天，加入工具后它就成了 Agent？**
+
 ## 核心概念
 
 "聊天机器人"只能生成文字。"Agent"能**采取行动**——执行命令、读写文件、搜索网页。
@@ -295,6 +305,12 @@ async def agent_loop(
    - 如果 LLM 没有 `tool_calls` → 它认为可以直接回答了 → 返回文本
 3. **循环**：最多循环 N 次，防止无限调用
 
+### 如果你只读 5 分钟，就先看这 3 段
+
+- `Tool.to_schema()`：模型如何知道有哪些工具
+- `ToolRegistry.execute()`：程序如何根据名字找到并执行工具
+- `agent_loop()`：工具调用结果如何重新回到下一轮推理
+
 ## 完整代码
 
 把以上所有部分组合起来：
@@ -574,6 +590,11 @@ Bot: 运行结果：Hello, World!
 - `json.loads(tc.function.arguments)` 报错：某些模型会生成不合法 JSON，需要先打印原始参数排查
 - 工具执行了但最终回答很差：通常是工具输出太长、太脏，模型没有拿到高质量观察结果
 - `exec` 工具不稳定：shell 环境、平台差异、命令超时都会影响效果；这也是为什么生产实现要做更多限制和适配
+
+## 配套示例
+
+- 对应代码快照：[examples/part2/ch02-mini-agent-with-tools.py](../examples/part2/ch02-mini-agent-with-tools.py)
+- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
 
 下一章解决这些问题。
 

@@ -1,0 +1,1 @@
+--8<-- "examples/part2/README.md"
