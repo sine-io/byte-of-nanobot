@@ -4,6 +4,38 @@
 
 本项目在整理内容、迭代结构和补充示例时，使用了 Codex 结合 Superpowers 进行辅助开发。它主要用于提升文档编写和工程协作效率，最终内容仍以教程的可读性、教学性和可验证性为准。
 
+## 本地阅读
+
+如果你只是想快速读 Markdown，直接用编辑器打开 [README.md](README.md) 即可。
+
+如果你希望它像一个带目录、搜索和上下页导航的文档站来阅读，仓库已经提供了 MkDocs 配置。clone 到本地后，在仓库根目录执行：
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-docs.txt
+python -m mkdocs serve
+```
+
+然后打开 `http://127.0.0.1:8000`。
+
+如果 `python3 -m venv .venv` 报 `ensurepip is not available`，通常说明系统没装 `venv` 组件；在 Debian / Ubuntu 上先安装 `python3-venv` 再重试。
+
+如果你只想检查站点能不能正常构建，可以运行：
+
+```bash
+python -m mkdocs build --strict
+```
+
+## GitHub Pages
+
+仓库已经补上 `GitHub Pages` 发布工作流，使用 `MkDocs` 构建静态站点，再由 GitHub Actions 自动部署。
+
+- 工作流文件：`.github/workflows/pages.yml`
+- 目标地址：`https://sine-io.github.io/nanobot-playbook/`
+
+第一次启用时，到仓库的 `Settings -> Pages` 中确认发布来源使用 `GitHub Actions`。之后只要向 `main` 分支推送，文档站就会自动重新发布。
+
 ## 这套教程适合谁
 
 - 想先把 nanobot 用起来，再逐步理解它为什么这样设计的人

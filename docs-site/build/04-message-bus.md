@@ -1,0 +1,1 @@
+--8<-- "build/04-message-bus.md"

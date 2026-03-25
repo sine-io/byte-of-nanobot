@@ -1,0 +1,1 @@
+--8<-- "05-first-real-bot.md"

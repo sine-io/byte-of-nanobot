@@ -1,0 +1,40 @@
+site_name: Nanobot Playbook
+site_description: 从零打造你的 AI Bot
+site_url: https://sine-io.github.io/nanobot-playbook/
+repo_url: https://github.com/sine-io/nanobot-playbook
+docs_dir: docs-site
+site_dir: site
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.footer
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path:
+        - .
+
+nav:
+  - 首页: README.md
+  - Part 1:
+      - 第 1 章：5 分钟跑起来: 01-quick-start.md
+      - 第 2 章：用 Markdown 定义 Bot: 02-soul.md
+      - 第 3 章：教 Bot 新技能: 03-skills.md
+      - 第 4 章：先部署到 Telegram: 04-deploy.md
+      - 第 5 章：做一个真实可用的 Bot: 05-first-real-bot.md
+  - Part 2:
+      - 导读: build/README.md
+      - 第 1 章：最简 Agent: build/01-simplest-agent.md
+      - 第 2 章：工具系统: build/02-tool-system.md
+      - 第 3 章：记忆与上下文: build/03-memory-and-context.md
+      - 第 4 章：消息总线: build/04-message-bus.md
+      - 第 5 章：技能与扩展: build/05-skills-and-beyond.md
+      - 第 6 章：从 Mini Agent 到真实项目: build/06-from-mini-agent-to-real-bot.md
