@@ -223,6 +223,8 @@ class ToolRegistry:
 
 这是整个教程最关键的代码。对应 `nanobot/agent/loop.py:180-257`：
 
+> 先说明一个教学上的妥协：下面的 `agent_loop` 写成了 `async`，但示例里仍然直接调用同步版 `OpenAI` 客户端。这足够帮助你看懂 ReAct 循环，却不代表它已经是非阻塞实现。真实项目里应改用异步客户端，或把这类阻塞 I/O 丢进线程池。
+
 ```python
 import json
 from openai import OpenAI

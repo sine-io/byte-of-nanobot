@@ -220,6 +220,8 @@ class TelegramChannel(BaseChannel):
 
 把前三章的 `main()` 函数改造成基于 Bus 的 AgentLoop：
 
+> 这里也要保持清醒：MessageBus 让消息流转解耦了，但不会自动把阻塞 I/O 变成非阻塞。下面 `_react_loop` 里如果继续直接调用同步版 `OpenAI` 客户端，慢请求仍然会卡住当前事件循环。教学版先保留这个简化，真实项目再换成异步客户端或线程池包装。
+
 ```python
 class AgentLoop:
     """基于消息总线的 Agent 循环——对应 nanobot/agent/loop.py"""
