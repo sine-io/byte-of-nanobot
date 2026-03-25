@@ -27,20 +27,10 @@ Telegram 是最容易上手的平台。
 
 ### 第二步：配置
 
-编辑 `~/.nanobot/config.json`，添加 Telegram 配置：
+在第 1 章已经可用的 `~/.nanobot/config.json` 基础上，至少补齐下面两段；如果 provider 或 model 还没配好，先回到第 1 章完成：
 
 ```json
 {
-  "providers": {
-    "openrouter": {
-      "apiKey": "sk-or-v1-你的密钥"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": "anthropic/claude-sonnet-4-6"
-    }
-  },
   "tools": {
     "restrictToWorkspace": true
   },
@@ -363,7 +353,7 @@ config.json
 | 创建 Skill | SkillsLoader |
 | 编辑 MEMORY.md | MemoryStore |
 
-核心代码只有约 4,280 行，却实现了一个功能完备的 AI Agent。这就是 nanobot "超轻量"的含义——不是功能少，而是设计精炼。
+核心实现规模依然相当克制，却实现了一个功能完备的 AI Agent。这就是 nanobot "超轻量"的含义——不是功能少，而是设计精炼。
 
 下一章我们不再新增概念，而是把前四章真正串起来，做出一个从配置、定制、扩展到 Telegram 上线都完整闭环的 Bot。
 

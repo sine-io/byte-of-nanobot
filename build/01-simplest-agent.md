@@ -18,7 +18,7 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",  # 换成你的 provider
     api_key="sk-or-v1-你的密钥",               # 换成你的 key
 )
-MODEL = "anthropic/claude-sonnet-4-6"          # 换成你想用的模型
+MODEL = "your-provider-supported-model"        # 换成你当前 provider 支持的模型
 
 def chat(messages: list[dict]) -> str:
     """调用 LLM，返回回复文本。"""
@@ -82,7 +82,7 @@ class LLMProvider(ABC):
         ...
 ```
 
-nanobot 用 `LiteLLM` 库来统一 20+ 种 LLM 的 API 差异——不管你用 OpenAI、Anthropic 还是 DeepSeek，代码都一样。我们直接用 `openai` 库，因为它已经是事实上的通用接口标准。
+nanobot 用 `LiteLLM` 库来统一多种 LLM 的 API 差异——不管你用 OpenAI、Anthropic 还是 DeepSeek，代码都一样。我们直接用 `openai` 库，因为它已经是事实上的通用接口标准。
 
 ### 2. 对话历史（`nanobot/session/manager.py`）
 

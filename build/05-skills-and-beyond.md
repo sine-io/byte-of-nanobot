@@ -203,9 +203,11 @@ Provider        AgentLoop         Channels
 
 ## 对照 nanobot 源码
 
+下面这些代码量和能力数量只用于帮助你建立规模感，具体以你查看仓库时的 nanobot 版本为准。
+
 | 我们构建的 | 代码量 | nanobot 对应 | nanobot 代码量 |
 |-----------|--------|-------------|---------------|
-| LLM 调用 | ~10 行 | `providers/` | ~800 行（20+ provider） |
+| LLM 调用 | ~10 行 | `providers/` | ~800 行（多 provider 支持） |
 | Tool 基类 + Registry | ~50 行 | `agent/tools/base.py` + `registry.py` | ~250 行（含校验） |
 | 3 个工具 | ~80 行 | `agent/tools/*.py` | ~1000 行（6 个工具 + MCP） |
 | ReAct 循环 | ~30 行 | `agent/loop.py` | ~500 行（含并发、进度、整合） |
@@ -215,9 +217,9 @@ Provider        AgentLoop         Channels
 | MessageBus | ~15 行 | `bus/queue.py` | ~45 行 |
 | Channel 基类 | ~20 行 | `channels/base.py` | ~117 行（含 ACL） |
 | Skills 加载 | ~50 行 | `agent/skills.py` | ~229 行（含 frontmatter 解析、依赖检查） |
-| **总计** | **~350 行** | **核心代码** | **~4,280 行** |
+| **总计** | **~350 行** | **核心代码** | **数千行级别** |
 
-我们用 350 行实现了 nanobot 4,280 行的核心骨架。差距在哪里？在**生产级的健壮性**：
+我们用 350 行实现了 nanobot 数千行级别核心骨架的教学版。差距在哪里？在**生产级的健壮性**：
 - 参数校验与类型转换
 - 错误恢复与重试
 - 多平台的边界情况处理
@@ -235,8 +237,8 @@ Provider        AgentLoop         Channels
 | 心跳服务 | `heartbeat/service.py` | 定期检查 HEARTBEAT.md 并执行 |
 | 子 Agent | `agent/subagent.py` | 后台派生子任务 |
 | MCP 协议 | `agent/tools/mcp.py` | 连接外部工具服务器 |
-| 10 个 Channel | `channels/*.py` | Telegram / Discord / Slack / 飞书 / 钉钉 / QQ / Email / WhatsApp / Matrix / Mochat |
-| Provider 注册表 | `providers/registry.py` | 声明式配置 20+ LLM 提供商 |
+| 多个 Channel | `channels/*.py` | Telegram / Discord / Slack / 飞书 / 钉钉 / QQ / Email / WhatsApp / Matrix / Mochat |
+| Provider 注册表 | `providers/registry.py` | 声明式配置多种 LLM 提供商 |
 
 但它们的底层原理和我们构建的完全一样——都是在这个骨架上增加模块。
 
@@ -299,7 +301,7 @@ Chatbot     Agent      有个性     Gateway    Skills
 | 4 | MessageBus + Channel | 解耦 I/O，一个 Agent 服务多平台 |
 | 5 | Skills | 动态注入领域知识，不改代码扩展能力 |
 
-这就是一个 AI Agent 框架的全部核心。nanobot 用 4,280 行做到了，我们用 350 行理解了它。
+这就是一个 AI Agent 框架的全部核心。nanobot 用数千行级别的工程实现把它做稳，我们用 350 行教学代码把它讲清楚。
 
 ---
 

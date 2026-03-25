@@ -313,7 +313,7 @@ from openai import OpenAI
 # ── 配置 ─────────────────────────────────────────────
 API_BASE = "https://openrouter.ai/api/v1"
 API_KEY  = "sk-or-v1-你的密钥"
-MODEL    = "anthropic/claude-sonnet-4-6"
+MODEL    = "your-provider-supported-model"
 
 client = OpenAI(base_url=API_BASE, api_key=API_KEY)
 

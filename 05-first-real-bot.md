@@ -131,7 +131,7 @@
 
 ## 5.4 给它一个真正有用的 Skill
 
-延续第 3 章，我们给它加一个 `exchange-rate` Skill。目录结构：
+延续第 3 章，直接复用已经创建好的 `exchange-rate` Skill。如果你还没做过那一章，先按[第 3 章：教 Bot 新技能](03-skills.md)里的完整示例创建它，这里不再重复贴全文。目录结构仍然是：
 
 ```text
 ~/.nanobot/workspace/
@@ -140,49 +140,19 @@
         └── SKILL.md
 ```
 
-`SKILL.md` 示例：
-
-创建 `~/.nanobot/workspace/skills/exchange-rate/SKILL.md`：
-
-```markdown
----
-name: exchange-rate
-description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
----
-
-# Exchange Rate
-
-Use the free ExchangeRate API (no key required).
-
-## Query current rate
-
-\```bash
-curl -s "https://open.er-api.com/v6/latest/USD" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-print(f\"1 USD = {data['rates']['CNY']} CNY\")
-"
-\```
-```
-
 这个 Skill 的价值不在于“多一个文件”，而在于它把“汇率怎么查”这件事从 Bot 主体里剥离了出去。Bot 本身不需要硬编码汇率逻辑，只需要在合适的时候读取 Skill 并调用已有工具。
+
+本章只要求它满足两点：
+
+- 能返回明确的汇率或换算结果
+- 回复里能说明数据来源，最好顺手带上查询时间
 
 ## 5.5 接到 Telegram
 
-在 `~/.nanobot/config.json` 中至少保证下面几项存在：
+在第 1 章已经跑通、且第 4 章已经接入 Telegram 的 `~/.nanobot/config.json` 基础上，至少补齐下面两段；如果 provider 或 model 还没配置好，先回到前两章完成：
 
 ```json
 {
-  "providers": {
-    "openrouter": {
-      "apiKey": "sk-or-v1-你的密钥"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": "anthropic/claude-sonnet-4-6"
-    }
-  },
   "tools": {
     "restrictToWorkspace": true
   },

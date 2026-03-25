@@ -23,7 +23,7 @@ pip install nanobot-ai
 
 ```bash
 nanobot --version
-# 输出类似：🐈 nanobot v0.1.4.post4
+# 输出类似：🐈 nanobot v0.x.y
 ```
 
 如果命令不存在，先检查两件事：
@@ -69,14 +69,14 @@ Next steps:
   },
   "agents": {
     "defaults": {
-      "model": "anthropic/claude-sonnet-4-6"
+      "model": "your-provider-supported-model"
     }
   }
 }
 ```
 
-> **其他 Provider 也可以。** nanobot 支持 20+ 种 LLM 提供商（OpenAI、Anthropic、DeepSeek、Gemini 等）。
-> 只需在 `providers` 里填对应的 key，在 `model` 里写对应的模型名即可。
+> **其他 Provider 也可以。** nanobot 支持多种 LLM 提供商（OpenAI、Anthropic、DeepSeek、Gemini 等）。
+> 只需在 `providers` 里填对应的 key，在 `model` 里写当前 provider 支持、且你账号可用的模型名即可。
 
 ## 1.4 第一次对话
 

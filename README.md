@@ -102,6 +102,7 @@
 - Python >= 3.11
 - 一个 LLM API Key
 - 终端 / 命令行工具
+- 如果你要跟做 Part 1 里的 Skill 示例，建议本机已安装 `curl` 和 `python3`
 
 ## 约定
 
