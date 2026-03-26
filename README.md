@@ -4,42 +4,18 @@
 
 本项目在整理内容、迭代结构和补充示例时，使用了 Codex 结合 Superpowers 进行辅助开发。它主要用于提升文档编写和工程协作效率，最终内容仍以教程的可读性、教学性和可验证性为准。
 
-## 本地阅读
+## 从这里开始
 
-如果你只是想快速读 Markdown，直接用编辑器打开 [README.md](README.md) 即可。
+如果你现在只想知道“这套教程值不值得读”，先看这 3 句：
 
-如果你希望它像一个带目录、搜索和上下页导航的文档站来阅读，仓库已经提供了 MkDocs 配置。clone 到本地后，在仓库根目录执行：
+- 你可以在 5 分钟内跑通 nanobot 的 CLI，拿到第一次正常回复
+- 你可以在 1 小时左右做出一个带人格、规则和 Skill 的 Bot 原型
+- 你可以继续读 Part 2，理解 Skill、Memory、MessageBus 这些主干机制为什么这样设计
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -r requirements-docs.txt
-python -m mkdocs serve
-```
+最适合从这里开始的人：
 
-然后打开 `http://127.0.0.1:8000`。
-
-如果 `python3 -m venv .venv` 报 `ensurepip is not available`，通常说明系统没装 `venv` 组件；在 Debian / Ubuntu 上先安装 `python3-venv` 再重试。
-
-如果你只想检查站点能不能正常构建，可以运行：
-
-```bash
-python -m mkdocs build --strict
-```
-
-## GitHub Pages
-
-仓库已经补上 `GitHub Pages` 发布工作流，使用 `MkDocs` 构建静态站点，再由 GitHub Actions 自动部署。
-
-- 工作流文件：`.github/workflows/pages.yml`
-- 目标地址：`https://sine-io.github.io/nanobot-playbook/`
-
-第一次启用时，到仓库的 `Settings -> Pages` 中确认发布来源使用 `GitHub Actions`。之后只要向 `main` 分支推送，文档站就会自动重新发布。
-
-## 这套教程适合谁
-
+- 会命令行、会编辑 JSON / Markdown，但还没有 AI Agent 开发经验的人
 - 想先把 nanobot 用起来，再逐步理解它为什么这样设计的人
-- 会命令行、会编辑配置文件，但没有 AI Agent 开发经验的人
 - 想从零手写一个教学版 Agent，理解 nanobot 核心架构的程序员
 
 不太适合：
@@ -47,16 +23,25 @@ python -m mkdocs build --strict
 - 完全没有命令行基础的绝对新手
 - 想直接得到生产级 bot 脚手架的人
 
-## 学前自检
+## 你现在该走哪条路线
 
-在开始前，先快速确认下面 4 件事：
+| 你现在最想要的结果 | 从哪里开始 | 读完后你会得到什么 |
+|------|------|------|
+| 先把 Bot 跑起来 | [第一次阅读请只走这一条](#first-read) | 一条从 CLI 到 Skill 再到 Telegram 的最短闭环 |
+| 理解 nanobot 的主干机制 | [路线 B：知其然，也知其所以然](#path-b) | 对 Provider、AgentLoop、Skill、MessageBus 的整体心智模型 |
+| 自己手写一个教学版 Agent | [路线 C：自己写一个 Bot](#path-c) | 一套从最简 Agent 到工程化边界的增量实现路径 |
 
-- 你知道怎么打开终端，并执行 `cd`、`ls`、`pwd` 这类基础命令
-- 你能编辑 JSON 和 Markdown 文件
-- 你手上已经有一个可用的 LLM API Key
-- 你愿意先按教程默认路径跑通一次，再做自己的改动
+## 开始前：环境预检
 
-如果这 4 条里有 2 条以上还做不到，建议先补一点命令行和 Python 环境基础，再回来读本教程。
+第一次跟做前，建议先用 3 分钟做一次环境预检，再开始安装和配置：
+
+- 核对命令行、Python、`venv`、API Key、模型名这些最小前置条件
+- 提前发现“不是教程坏了，而是本机环境还没准备好”的问题
+- 如果你后面要接 Telegram，也能顺手确认 Bot Token 和数字用户 ID 这类平台前置项
+
+直接看：[附录：环境预检](appendix-environment-precheck.md)
+
+<a id="first-read"></a>
 
 ## 第一次阅读请只走这一条
 
@@ -88,6 +73,8 @@ python -m mkdocs build --strict
 - 写一个自己的 Skill
 - 把 Bot 部署到 Telegram
 
+<a id="path-b"></a>
+
 ### 路线 B：知其然，也知其所以然
 
 适合想理解 nanobot 主干机制的人。推荐读法：
@@ -101,6 +88,8 @@ python -m mkdocs build --strict
 - AgentLoop 怎么工作
 - Skill 为什么能按需加载
 - MessageBus 为什么能支持多平台
+
+<a id="path-c"></a>
 
 ### 路线 C：自己写一个 Bot
 
@@ -119,6 +108,38 @@ python -m mkdocs build --strict
 - 写出一个教学版多轮 Agent
 - 给它加工具、记忆、技能和多平台入口
 - 理解它距离工程化产品还差什么
+
+## 本地阅读
+
+如果你只是想快速读 Markdown，直接用编辑器打开 [README.md](README.md) 即可。
+
+如果你希望它像一个带目录、搜索和上下页导航的文档站来阅读，仓库已经提供了 MkDocs 配置。clone 到本地后，在仓库根目录执行：
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-docs.txt
+python -m mkdocs serve
+```
+
+然后打开 `http://127.0.0.1:8000`。
+
+如果 `python3 -m venv .venv` 报 `ensurepip is not available`，通常说明系统没装 `venv` 组件；在 Debian / Ubuntu 上先安装 `python3-venv` 再重试。
+
+如果你只想检查站点能不能正常构建，可以运行：
+
+```bash
+python -m mkdocs build --strict
+```
+
+## GitHub Pages
+
+仓库已经补上 `GitHub Pages` 发布工作流，使用 `MkDocs` 构建静态站点，再由 GitHub Actions 自动部署。
+
+- 工作流文件：`.github/workflows/pages.yml`
+- 目标地址：`https://sine-io.github.io/nanobot-playbook/`
+
+第一次启用时，到仓库的 `Settings -> Pages` 中确认发布来源使用 `GitHub Actions`。之后只要向 `main` 分支推送，文档站就会自动重新发布。
 
 ## Part 1：使用 nanobot
 
@@ -164,6 +185,7 @@ python -m mkdocs build --strict
 
 ## 附录与配套材料
 
+- [环境预检附录](appendix-environment-precheck.md)：适合在“还没开始跟做，但不确定本机和账号是否准备好”时先看
 - [常见坑与排障附录](appendix-troubleshooting.md)：适合在“哪里不对劲，但还不知道是哪一层出问题”时查
 - [Part 2 配套示例](examples/part2/README.md)：给程序员的章节快照代码，方便对照 `build/` 边读边跑
 

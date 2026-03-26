@@ -217,6 +217,21 @@ def _load_bootstrap_files(self):
     return "\n\n".join(parts) if parts else ""
 ```
 
+如果你更习惯先看结构图，可以先把它理解成这样：
+
+```mermaid
+flowchart TD
+    identity["固定身份<br/>nanobot"] --> prompt["发送给 LLM 的 System Prompt"]
+    agents["AGENTS.md<br/>行为指令"] --> prompt
+    soul["SOUL.md<br/>人格"] --> prompt
+    user["USER.md<br/>用户画像"] --> prompt
+    tools["TOOLS.md<br/>工具规则"] --> prompt
+    memory["Memory<br/>长期记忆"] --> prompt
+    skills["Skills<br/>技能摘要 / 按需加载的技能内容"] --> prompt
+```
+
+也就是说，四个 Markdown 文件当然重要，但它们并不是发给模型的**全部内容**。真正送进 LLM 的，是这些层被拼起来之后的完整 system prompt。
+
 所以最终发给 LLM 的 System Prompt 长这样：
 
 ```
