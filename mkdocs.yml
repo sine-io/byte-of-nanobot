@@ -21,6 +21,11 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path:
         - .
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
   - 首页: README.md
@@ -39,5 +44,6 @@ nav:
       - 第 5 章：技能与扩展: build/05-skills-and-beyond.md
       - 第 6 章：从 Mini Agent 到真实项目: build/06-from-mini-agent-to-real-bot.md
   - 附录:
+      - 环境预检: appendix-environment-precheck.md
       - 常见坑与排障: appendix-troubleshooting.md
       - Part 2 配套示例: examples/part2/README.md

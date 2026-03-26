@@ -2,6 +2,10 @@
 
 > 目标：先把你的 Bot 接到 Telegram，让它在真实聊天场景中工作；再理解为什么 nanobot 能继续扩展到其他平台。
 
+> 阅读顺序提示：虽然它排在第 4 章，但**第一次跟做时**，更推荐你先完成 [第 5 章](05-first-real-bot.md) 的 `5.1` 到 `5.4` 和 `5.6`，先把 Bot 本身在本地验收通过，再回来接 Telegram。这样能把“Bot 没配对”和“平台没接通”两类问题分开排查。
+
+如果你还没确认 Telegram 账号、Bot Token、数字用户 ID，或者连本地 CLI 都还没跑通，先看 [附录：环境预检](appendix-environment-precheck.md)。
+
 ## 4.1 从 CLI 到 Gateway
 
 前三章我们一直用 `nanobot agent` 在终端里聊天。现在先选一个最容易上手的平台，把 Bot 真正放进聊天场景里。
@@ -156,17 +160,25 @@ nanobot 能同时支持这么多平台，核心设计是**消息总线（Message
 
 ### 整体架构
 
-```
- Telegram ─┐                          ┌─ Telegram
- Discord ──┤  InboundMessage           │  OutboundMessage
- Slack ────┤──────────────→ MessageBus ────────────────→ Slack
- Email ────┤                    │      │              Email
- CLI ──────┘                    ↓      └── CLI
-                           AgentLoop
-                          (统一处理)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant P as Telegram / CLI / Discord
+    participant C as Channel
+    participant B as MessageBus
+    participant A as AgentLoop
+
+    P->>C: 原始平台消息
+    C->>B: InboundMessage
+    B->>A: consume_inbound()
+    A-->>B: publish_outbound()
+    B-->>C: OutboundMessage
+    C-->>P: 发回原平台
 ```
 
 所有平台的消息都被转换成统一的 `InboundMessage` 格式，通过 MessageBus 传给 AgentLoop。AgentLoop 不关心消息来自哪个平台——它只处理文本，返回 `OutboundMessage`，再由 MessageBus 路由到正确的平台。
+
+你可以把整个系统先压缩成一句话：**Channel 负责“翻译平台消息”，AgentLoop 负责“统一处理消息”，MessageBus 负责“在两者之间转运消息”。** 先抓住这条主线，再去看具体类和字段，会轻松很多。
 
 ### 消息格式
 

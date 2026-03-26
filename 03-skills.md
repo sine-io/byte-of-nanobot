@@ -96,6 +96,22 @@ read its SKILL.md file using the read_file tool.
 
 当用户问"今天天气怎么样"时，Agent 看到摘要里有一个 `weather` Skill，就用 `read_file` 工具读取完整的 `SKILL.md`，学会怎么用 `curl` 查天气，然后执行命令返回结果。
 
+用图来看，这个过程更接近下面这样：
+
+```mermaid
+flowchart TD
+    question["用户提问"] --> summary["第 1 层<br/>始终注入所有 Skill 的 name + description"]
+    summary --> match{"匹配到相关 Skill 吗？"}
+    match -- 否 --> direct["不加载 Skill 正文<br/>按常规流程回答"]
+    match -- 是 --> body["第 2 层<br/>按需读取匹配 Skill 的 SKILL.md"]
+    body --> need{"还需要额外资源吗？"}
+    need -- 否 --> answer["执行步骤并回复"]
+    need -- 是 --> resources["第 3 层<br/>按需读取 scripts/、references/ 等资源"]
+    resources --> answer
+```
+
+这里最关键的不是“能不能加载 Skill”，而是**什么时候才加载**。先放一个很薄的摘要层，只有在提问真的命中场景时，才继续读正文和附带资源。
+
 ### 为什么这么设计？
 
 LLM 的上下文窗口是**共享资源**。System Prompt + 对话历史 + 记忆 + 工具定义 + Skill，全部共享一个窗口。如果把 10 个 Skill 的完整内容全塞进去，光 Skill 就占了几千个 token，留给对话的空间就少了。
