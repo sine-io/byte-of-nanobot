@@ -1,7 +1,7 @@
-site_name: Nanobot Playbook
-site_description: 从零打造你的 AI Bot
-site_url: https://sine-io.github.io/nanobot-playbook/
-repo_url: https://github.com/sine-io/nanobot-playbook
+site_name: byte-of-nanobot
+site_description: 简明 NanoBot 教程
+site_url: https://sine-io.github.io/byte-of-nanobot/
+repo_url: https://github.com/sine-io/byte-of-nanobot
 docs_dir: docs-site
 site_dir: site
 

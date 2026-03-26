@@ -1,4 +1,4 @@
-# 从零打造你的 AI Bot
+# 简明 NanoBot 教程
 
 > 一套面向 AI Agent 初学者的 nanobot 教程，带你从“先跑起来”到“理解架构”，再到“自己写一个 bot”。
 
@@ -137,7 +137,7 @@ python -m mkdocs build --strict
 仓库已经补上 `GitHub Pages` 发布工作流，使用 `MkDocs` 构建静态站点，再由 GitHub Actions 自动部署。
 
 - 工作流文件：`.github/workflows/pages.yml`
-- 目标地址：`https://sine-io.github.io/nanobot-playbook/`
+- 目标地址：`https://sine-io.github.io/byte-of-nanobot/`
 
 第一次启用时，到仓库的 `Settings -> Pages` 中确认发布来源使用 `GitHub Actions`。之后只要向 `main` 分支推送，文档站就会自动重新发布。
 
