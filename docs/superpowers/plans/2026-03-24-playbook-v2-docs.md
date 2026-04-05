@@ -4,7 +4,7 @@
 
 **Goal:** Clarify the tutorial's audience split and add the missing bridge chapters so V2 better serves both nanobot users and programmers.
 
-**Architecture:** Keep the existing `Part 1 / Part 2` structure and stable file paths, then tighten copy where promises are too broad and add one capstone chapter to each track. This avoids churn while making the learning paths explicit and closing the biggest teaching gaps.
+**Architecture:** Keep the existing `新手村 / 进阶营` structure and stable file paths, then tighten copy where promises are too broad and add one capstone chapter to each track. This avoids churn while making the learning paths explicit and closing the biggest teaching gaps.
 
 **Tech Stack:** Markdown documentation, relative links, repository navigation references
 
@@ -20,7 +20,7 @@
 - [x] Expand both chapter tables to include the new capstone chapters.
 - [x] Add a clear "scope and boundaries" section so the repo does not over-promise production readiness.
 
-### Task 2: Tighten Part 1 chapter framing
+### Task 2: Tighten 新手村 chapter framing
 
 **Files:**
 - Modify: `02-soul.md`
@@ -30,10 +30,10 @@
 
 - [x] Rename chapter 2 in-place to emphasize Markdown-driven bot customization.
 - [x] Retitle chapter 4 to a Telegram-first deployment story that matches the actual walkthrough.
-- [x] Update previous/next navigation labels so chapter names stay consistent across Part 1.
+- [x] Update previous/next navigation labels so chapter names stay consistent across 新手村.
 - [x] Preserve existing file paths to avoid unnecessary link churn.
 
-### Task 3: Add the Part 1 capstone
+### Task 3: Add the 新手村 capstone
 
 **Files:**
 - Create: `05-first-real-bot.md`
@@ -43,7 +43,7 @@
 - [x] Include a concrete scenario, a full sample workspace setup, a validation checklist, and a short architecture recap.
 - [x] Link chapter 4 forward to the new capstone and give the capstone clear return links.
 
-### Task 4: Add the Part 2 bridge to real projects
+### Task 4: Add the 进阶营 bridge to real projects
 
 **Files:**
 - Create: `build/06-from-mini-agent-to-real-bot.md`

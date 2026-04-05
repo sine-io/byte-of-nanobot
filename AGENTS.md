@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository is a Markdown tutorial set, not an application codebase. Top-level chapters (`01-quick-start.md` through `04-deploy.md`) form Part 1 and explain how to use nanobot. The [`build/`](./build) directory contains Part 2, a step-by-step reconstruction of nanobot internals, with one chapter per topic plus [`build/README.md`](./build/README.md). [`README.md`](./README.md) is the entry point and should stay aligned with chapter titles and ordering.
+This repository is a Markdown tutorial set, not an application codebase. Top-level chapters (`01-quick-start.md` through `04-deploy.md`) form 新手村 and explain how to use nanobot. The [`build/`](./build) directory contains 进阶营, a step-by-step reconstruction of nanobot internals, with one chapter per topic plus [`build/README.md`](./build/README.md). [`README.md`](./README.md) is the entry point and should stay aligned with chapter titles and ordering.
 
 ## Build, Test, and Development Commands
 This repository includes an optional MkDocs setup for local reading and verification. Use lightweight local checks instead:

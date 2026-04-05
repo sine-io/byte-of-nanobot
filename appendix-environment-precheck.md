@@ -8,12 +8,12 @@
 
 | 你的目标 | 最少需要准备什么 |
 |------|------|
-| 只跑通 Part 1 的 CLI | 终端、Python、`venv`、一个可用的 API Key、一个可调用的模型名 |
+| 只跑通新手村的 CLI | 终端、Python、`venv`、一个可用的 API Key、一个可调用的模型名 |
 | 跟做 Skill 示例 | 在 CLI 基础上，再确认本机有 `curl` 和 `python3` |
 | 接 Telegram | 在 CLI 基础上，再准备 Telegram 账号、Bot Token、数字用户 ID |
-| 跟做 Part 2 代码 | 在 CLI 基础上，再确认你有基础 Python 知识（函数、类、`async/await`） |
+| 跟做进阶营代码 | 在 CLI 基础上，再确认你有基础 Python 知识（函数、类、`async/await`） |
 
-如果你这次的目标只是“先跑起来”，不要一开始就把 Telegram、Docker、systemd 和 Part 2 一起准备。
+如果你这次的目标只是“先跑起来”，不要一开始就把 Telegram、Docker、systemd 和进阶营一起准备。
 
 ## 1. 终端与基础命令
 

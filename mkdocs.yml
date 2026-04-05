@@ -45,13 +45,13 @@ markdown_extensions:
 
 nav:
   - 首页: README.md
-  - Part 1:
+  - 新手村:
       - 第 1 章：5 分钟跑起来: 01-quick-start.md
       - 第 2 章：用 Markdown 定义 Bot: 02-soul.md
       - 第 3 章：教 Bot 新技能: 03-skills.md
       - 第 4 章：先部署到 Telegram: 04-deploy.md
       - 第 5 章：做一个真实可用的 Bot: 05-first-real-bot.md
-  - Part 2:
+  - 进阶营:
       - 导读: build/README.md
       - 第 1 章：最简 Agent: build/01-simplest-agent.md
       - 第 2 章：工具系统: build/02-tool-system.md
@@ -62,4 +62,4 @@ nav:
   - 附录:
       - 环境预检: appendix-environment-precheck.md
       - 常见坑与排障: appendix-troubleshooting.md
-      - Part 2 配套示例: examples/part2/README.md
+      - 进阶营配套示例: examples/part2/README.md

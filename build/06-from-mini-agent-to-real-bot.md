@@ -247,4 +247,4 @@ Agent 项目最容易被低估的不是 Prompt，而是**工具风险**。
 
 - 想回看教学快照代码：[examples/part2/README.md](../examples/part2/README.md)
 - 想排查“为什么就是跑不对”：先看[附录：常见坑与排障](../appendix-troubleshooting.md)
-- 想继续从目录回读前面的架构主线：[Part 2 导读](README.md)
+- 想继续从目录回读前面的架构主线：[进阶营导读](README.md)

@@ -1,4 +1,4 @@
-# Part 2 配套示例
+# 进阶营配套示例
 
 > 这些文件是 `build/` 章节的教学快照，方便你边读边跑。它们的目标是降低复制 Markdown 代码块的成本，不是替代正文讲解。
 
@@ -26,7 +26,7 @@
 
 ## 推荐读法
 
-如果你是第一次读 Part 2，建议：
+如果你是第一次读进阶营，建议：
 
 1. 先从 `ch01` 到 `ch03`
 2. `ch04` 先只跑 CLI 路径，理解总线，不必一开始就接 Telegram
@@ -34,6 +34,6 @@
 
 如果你现在想返回正文：
 
-- 回 Part 2 导读：[build/README.md](../../build/README.md)
+- 回进阶营导读：[build/README.md](../../build/README.md)
 - 回仓库首页：[README.md](../../README.md)
 - 查排障附录：[appendix-troubleshooting.md](../../appendix-troubleshooting.md)

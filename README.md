@@ -10,7 +10,7 @@
 
 - 你可以在 5 分钟内跑通 nanobot 的 CLI，拿到第一次正常回复
 - 你可以在 1 小时左右做出一个带人格、规则和 Skill 的 Bot 原型
-- 你可以继续读 Part 2，理解 Skill、Memory、MessageBus 这些主干机制为什么这样设计
+- 你可以继续读进阶营，理解 Skill、Memory、MessageBus 这些主干机制为什么这样设计
 
 最适合从这里开始的人：
 
@@ -79,7 +79,7 @@
 
 适合想理解 nanobot 主干机制的人。推荐读法：
 
-1. 先读 Part 1，知道功能入口
+1. 先读新手村，知道功能入口
 2. 再对照读 `build/` 中对应章节，理解实现原理
 
 学完后你应该能解释：
@@ -95,7 +95,7 @@
 
 适合程序员。按顺序阅读：
 
-1. [Part 2 导读](build/README.md)
+1. [进阶营导读](build/README.md)
 2. [第 1 章：最简 Agent](build/01-simplest-agent.md)
 3. [第 2 章：工具系统](build/02-tool-system.md)
 4. [第 3 章：记忆与上下文](build/03-memory-and-context.md)
@@ -141,7 +141,7 @@ python -m mkdocs build --strict
 
 第一次启用时，到仓库的 `Settings -> Pages` 中确认发布来源使用 `GitHub Actions`。之后只要向 `main` 分支推送，文档站就会自动重新发布。
 
-## Part 1：使用 nanobot
+## 新手村：使用 nanobot
 
 这一部分关注“先用起来”，帮助你配置、定制、扩展并部署自己的 Bot。
 
@@ -153,7 +153,7 @@ python -m mkdocs build --strict
 | [第 4 章：先部署到 Telegram](04-deploy.md) | 把 Bot 接到真实聊天平台 | Gateway 模式与 MessageBus 架构 |
 | [第 5 章：做一个真实可用的 Bot](05-first-real-bot.md) | 把前四章串成完整项目 | 从配置到上线的完整闭环 |
 
-## Part 2：[从零复刻 nanobot](build/README.md)
+## 进阶营：[从零复刻 nanobot](build/README.md)
 
 这一部分关注“为什么这样设计”，用 Python 从零手写一个教学版 AI Agent 框架。
 
@@ -187,14 +187,14 @@ python -m mkdocs build --strict
 
 - [环境预检附录](appendix-environment-precheck.md)：适合在“还没开始跟做，但不确定本机和账号是否准备好”时先看
 - [常见坑与排障附录](appendix-troubleshooting.md)：适合在“哪里不对劲，但还不知道是哪一层出问题”时查
-- [Part 2 配套示例](examples/part2/README.md)：给程序员的章节快照代码，方便对照 `build/` 边读边跑
+- [进阶营配套示例](examples/part2/README.md)：给程序员的章节快照代码，方便对照 `build/` 边读边跑
 
 ## 前置准备
 
 - Python >= 3.11
 - 一个 LLM API Key
 - 终端 / 命令行工具
-- 如果你要跟做 Part 1 里的 Skill 示例，建议本机已安装 `curl` 和 `python3`
+- 如果你要跟做新手村里的 Skill 示例，建议本机已安装 `curl` 和 `python3`
 
 ## 约定
 
@@ -216,4 +216,4 @@ python -m mkdocs build --strict
 - ACL 与安全沙箱
 - 完整测试与部署体系
 
-这些会在 Part 2 的最后一章集中说明。想核对真实实现时，请回到对应源码模块查看。
+这些会在进阶营的最后一章集中说明。想核对真实实现时，请回到对应源码模块查看。

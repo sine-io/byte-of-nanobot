@@ -105,6 +105,6 @@ pip install openai
 
 如果你更习惯“先打开代码文件，再对照文档阅读”，可以直接看：
 
-- [Part 2 配套示例目录](../examples/part2/README.md)
+- [进阶营配套示例目录](../examples/part2/README.md)
 
 这些示例是按章节整理的教学快照，目的是降低复制 Markdown 代码块的成本。它们依然是**教学版**，不是生产脚手架。

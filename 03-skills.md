@@ -363,7 +363,7 @@ description: Format raw JSON into readable output. Use when the user provides JS
 description: JSON
 ```
 
-补一个教学版约束：为了兼容 Part 2 里简化版的 `SkillsLoader`，这里建议先把 `description` 写成**单行**。真实 nanobot 的 frontmatter 解析更完整，但教学版为了突出原理，故意只演示最小实现。
+补一个教学版约束：为了兼容进阶营里简化版的 `SkillsLoader`，这里建议先把 `description` 写成**单行**。真实 nanobot 的 frontmatter 解析更完整，但教学版为了突出原理，故意只演示最小实现。
 
 ### always 标记
 
