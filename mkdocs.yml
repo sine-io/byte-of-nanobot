@@ -8,24 +8,40 @@ site_dir: site
 theme:
   name: material
   language: zh
+  palette:
+    scheme: slate
+    primary: cyan
+    accent: deep purple
   features:
-    - navigation.sections
-    - navigation.expand
-    - navigation.footer
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - toc.integrate
     - content.code.copy
+    - content.code.annotate
+    - search.suggest
 
 plugins:
   - search
 
+extra_css:
+  - stylesheets/cyber-theme.css
+
 markdown_extensions:
+  - admonition
   - pymdownx.snippets:
       base_path:
         - .
+  - pymdownx.highlight:
+      linenums: true
+      anchor_linenums: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
 
 nav:
   - 首页: README.md
