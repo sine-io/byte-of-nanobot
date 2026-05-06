@@ -82,7 +82,7 @@ class LLMProvider(ABC):
         ...
 ```
 
-nanobot 用 `LiteLLM` 库来统一多种 LLM 的 API 差异——不管你用 OpenAI、Anthropic 还是 DeepSeek，代码都一样。我们直接用 `openai` 库，因为它已经是事实上的通用接口标准。
+nanobot 现在通过 Provider 抽象来屏蔽不同 LLM API 的差异：Claude/Anthropic 走原生 Anthropic SDK；OpenAI、OpenRouter、DeepSeek 等 OpenAI-compatible 服务走 OpenAI SDK 兼容客户端；其他特殊后端由对应 Provider 处理。这里的教学版直接用 `openai` 库，是为了先跑通 OpenAI-compatible 的最短路径，不代表真实 nanobot 只支持 OpenAI。
 
 ### 2. 对话历史（`nanobot/session/manager.py`）
 

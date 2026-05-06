@@ -201,7 +201,7 @@ agent_loop = AgentLoop(
 
 Provider 是 nanobot 和 LLM 之间的桥梁。它负责把你的消息发给 LLM，再把 LLM 的回复拿回来。
 
-nanobot 用了一个叫 LiteLLM 的库来统一不同 LLM 的 API 差异。不管你用 OpenAI、Anthropic 还是 DeepSeek，Provider 都帮你处理好了格式转换——你只需要换 `model` 和 `apiKey`。
+nanobot 现在通过 Provider 抽象来屏蔽不同 LLM API 的差异：Claude/Anthropic 走原生 Anthropic SDK；OpenAI、OpenRouter、DeepSeek 等 OpenAI-compatible 服务走 OpenAI SDK 兼容客户端；其他特殊后端由对应 Provider 处理。你主要需要配置好 `provider`、`model`、`apiKey` 和必要的 `apiBase`，Provider 会负责选择后端、转换消息 / 工具调用格式，并把响应整理成 AgentLoop 能处理的统一结构。
 
 ### AgentLoop 是什么？
 
