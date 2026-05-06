@@ -229,13 +229,13 @@ Provider        AgentLoop         Channels
 
 | 我们构建的 | 代码量 | nanobot 对应 | nanobot 代码量 |
 |-----------|--------|-------------|---------------|
-| LLM 调用 | ~10 行 | `providers/` | ~800 行（多 provider 支持） |
+| LLM 调用 | ~10 行 | `providers/` | 多 provider 支持，含原生 / OpenAI-compatible / OAuth / 本地后端 |
 | Tool 基类 + Registry | ~50 行 | `agent/tools/base.py` + `registry.py` | ~250 行（含校验） |
-| 3 个工具 | ~80 行 | `agent/tools/*.py` | ~1000 行（6 个工具 + MCP） |
+| 3 个工具 | ~80 行 | `agent/tools/*.py` | 文件、搜索、网页、消息、定时、子任务、notebook、ask_user、my、MCP 等工具 |
 | ReAct 循环 | ~30 行 | `agent/loop.py` | ~500 行（含并发、进度、整合） |
 | Session 管理 | ~40 行 | `session/manager.py` | ~214 行（含迁移、元数据） |
 | Context Builder | ~30 行 | `agent/context.py` | ~194 行（含多模态） |
-| Memory 系统 | ~30 行 | `agent/memory.py` | ~158 行（含 function calling 整合） |
+| Memory 系统 | ~30 行 | `agent/memory.py` | Consolidator + Dream + `history.jsonl` + 记忆版本历史 |
 | MessageBus | ~15 行 | `bus/queue.py` | ~45 行 |
 | Channel 基类 | ~20 行 | `channels/base.py` | ~117 行（含 ACL） |
 | Skills 加载 | ~50 行 | `agent/skills.py` | ~229 行（含 frontmatter 解析、依赖检查） |
@@ -261,6 +261,9 @@ Provider        AgentLoop         Channels
 | MCP 协议 | `agent/tools/mcp.py` | 连接外部工具服务器 |
 | 多个 Channel | `channels/*.py` | Telegram / Discord / Slack / 飞书 / 钉钉 / QQ / Email / WhatsApp / Matrix / Mochat |
 | Provider 注册表 | `providers/registry.py` | 声明式配置多种 LLM 提供商 |
+| OpenAI-compatible API | `api/server.py` | 让外部程序通过 `/v1/chat/completions` 调用 nanobot |
+| Python SDK | `nanobot/nanobot.py` | 在 Python 代码中直接用 `Nanobot.from_config()` |
+| WebSocket / WebUI | `channels/websocket.py`, `webui/` | 给浏览器或自定义客户端提供实时会话入口 |
 
 但它们的底层原理和我们构建的完全一样——都是在这个骨架上增加模块。
 

@@ -20,7 +20,7 @@
 2. **没有个性**——system prompt 就一句话
 3. **上下文会爆**——对话越长，messages 越大，最终超出 LLM 窗口
 
-nanobot 用三个机制解决这些问题：**Session 持久化**、**Context Builder**、**Memory 整合**。
+nanobot 用三个机制解决这些问题：**Session 持久化**、**Context Builder**、**Memory / Dream 整合**。
 
 ## 第一步：Session 持久化
 
@@ -89,7 +89,7 @@ class SessionManager:
 这是 nanobot 最精巧的设计之一（`nanobot/agent/context.py`）。System Prompt 不是写死的，而是**动态组装**的：
 
 ```
-System Prompt = 身份 + Bootstrap 文件 + 长期记忆 + 技能摘要
+System Prompt = 身份 + Bootstrap 文件 + 长期记忆 + 技能摘要 + 最近历史摘要
 ```
 
 ```python
@@ -156,22 +156,25 @@ class ContextBuilder:
 
 ## 第三步：持久化记忆
 
-对应 `nanobot/agent/memory.py`。两层设计：
+对应 `nanobot/agent/memory.py`。当前实现是分层设计：
 
 | 层 | 文件 | 特点 |
 |---|---|---|
 | 长期记忆 | `memory/MEMORY.md` | **每次对话都注入** system prompt，存放重要事实 |
-| 历史日志 | `memory/HISTORY.md` | 不注入上下文，可 grep 搜索，存放对话摘要 |
+| 历史摘要归档 | `memory/history.jsonl` | 追加式 JSONL，可 grep / jq 搜索，存放被压缩后的旧对话 |
+| Dream 状态 | `memory/.cursor` / `memory/.dream_cursor` | 记录摘要写入位置和 Dream 已处理位置 |
+| 记忆版本 | `memory/.git/` | Dream 修改长期文件后的轻量版本历史 |
 
 ```python
 class MemoryStore:
-    """两层记忆——对应 nanobot/agent/memory.py"""
+    """分层记忆——对应 nanobot/agent/memory.py（简化版）"""
 
     def __init__(self, workspace: Path):
         mem_dir = workspace / "memory"
         mem_dir.mkdir(parents=True, exist_ok=True)
         self.memory_file = mem_dir / "MEMORY.md"
-        self.history_file = mem_dir / "HISTORY.md"
+        self.history_file = mem_dir / "history.jsonl"
+        self.cursor_file = mem_dir / ".cursor"
 
     def read_memory(self) -> str:
         if self.memory_file.exists():
@@ -182,13 +185,27 @@ class MemoryStore:
         self.memory_file.write_text(content, encoding="utf-8")
 
     def append_history(self, entry: str):
+        cursor = self._next_cursor()
+        record = {
+            "cursor": cursor,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "content": entry.rstrip(),
+        }
         with open(self.history_file, "a", encoding="utf-8") as f:
-            f.write(entry.rstrip() + "\n\n")
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        self.cursor_file.write_text(str(cursor), encoding="utf-8")
+
+    def _next_cursor(self) -> int:
+        if self.cursor_file.exists():
+            return int(self.cursor_file.read_text(encoding="utf-8").strip()) + 1
+        return 1
 ```
 
 ### 记忆整合（Memory Consolidation）
 
-当对话太长时，nanobot 会自动整合：把旧消息交给 LLM 总结，提取重要事实写入 `MEMORY.md`，对话摘要追加到 `HISTORY.md`。教学版示例把它描述成“移除旧消息”来帮助理解，但当前仓库实现更接近“保留原始消息，并只让未整合部分继续参与上下文构建”。
+当对话太长时，nanobot 会先由 **Consolidator** 把旧消息交给 LLM 总结，并把摘要追加到 `memory/history.jsonl`。随后 **Dream** 会定期读取这些新摘要，分析哪些内容应该沉淀为长期事实，再用文件工具谨慎编辑 `SOUL.md`、`USER.md` 和 `MEMORY.md`。
+
+教学版为了让机制更容易看懂，把这两步压缩成一个 `consolidate_memory()`：旧消息 → 摘要 → `history.jsonl`，再把最重要的结论写入 `MEMORY.md`。真实 nanobot 的 token-driven consolidation 更克制：它主要推进内部游标，保留原始 session 文件，并只让未整合部分继续参与上下文构建。
 
 这个机制确保了：
 - 上下文窗口不会撑爆
@@ -203,7 +220,7 @@ async def consolidate_memory(
     session: Session, memory: MemoryStore,
     keep_recent: int = 25,
 ):
-    """把旧消息整合进记忆——对应 nanobot/agent/memory.py:69"""
+    """把旧消息整合进记忆——教学版，对应 nanobot/agent/memory.py 的主干思想"""
     if len(session.messages) <= keep_recent:
         return  # 还不够长，不需要整合
 
@@ -233,18 +250,17 @@ Respond in JSON: {{"history": "summary for log", "memory": "updated memory markd
     try:
         result = json.loads(resp.choices[0].message.content)
         if result.get("history"):
-            ts = datetime.now().strftime("[%Y-%m-%d %H:%M]")
-            memory.append_history(f"{ts} {result['history']}")
+            memory.append_history(result["history"])
         if result.get("memory"):
             memory.write_memory(result["memory"])
-        # 删除已整合的旧消息
+        # 教学简化：直接丢弃旧消息。真实 nanobot 更偏向推进游标并保留原始 session 文件。
         session.messages = session.messages[-keep_recent:]
         print("  [Memory] Consolidated old messages")
     except (json.JSONDecodeError, KeyError):
         pass  # 整合失败就跳过，不影响正常对话
 ```
 
-nanobot 的实现更精巧——它通过 function calling 让 LLM 调用 `save_memory` 工具来保存结果，比解析 JSON 更可靠（`nanobot/agent/memory.py:69-157`）。
+nanobot 的实现更精巧：`Consolidator` 负责在上下文压力过大时把旧消息压缩进 `history.jsonl`；`Dream` 则作为后台记忆整理器，分两阶段分析历史摘要并编辑长期记忆文件。Dream 的修改还会进入轻量 Git 历史，用户可以用 `/dream-log` 和 `/dream-restore` 查看或恢复。
 
 ### 先别把这三个概念混在一起
 
@@ -262,7 +278,7 @@ nanobot 的实现更精巧——它通过 function calling 让 LLM 调用 `save_
 
 - `Session Persistence`：把对话状态从内存搬到磁盘
 - `Context Builder`：把静态配置、动态记忆、运行时信息拼成统一上下文
-- `Memory Consolidation`：用摘要和长期记忆对抗上下文窗口上限
+- `Memory / Dream Consolidation`：用摘要归档和长期记忆对抗上下文窗口上限
 
 从这里开始，Agent 不再只是“会调用工具的聊天循环”，而是一个有稳定人格、跨轮状态和上下文预算意识的系统。
 
@@ -273,13 +289,13 @@ nanobot 的实现更精巧——它通过 function calling 让 LLM 调用 `save_
 1. 跑一次程序并完成几轮对话，确认会生成 `sessions/` 和 `memory/` 相关文件
 2. 重启程序，再问一个延续上一轮的问题，确认至少 session 历史仍然存在
 3. 修改 `SOUL.md` 或 `AGENTS.md`，确认下一次对话的风格或流程发生变化
-4. 构造一段较长对话，手动触发或观察记忆整合后 `MEMORY.md` / `HISTORY.md` 的变化
+4. 构造一段较长对话，手动触发或观察记忆整合后 `memory/history.jsonl` 和 `MEMORY.md` 的变化；真实 nanobot 还可以用 `/dream-log` 查看 Dream 修改了什么
 
 ## 常见失败点
 
 - 重启后“没有记忆”：先区分是 session 历史没保存，还是长期记忆没写入，这是两套机制
 - 改了 `SOUL.md` 没效果：通常是 build_messages 没有重新读取文件，或 system prompt 没重新构建
-- 记忆整合输出不稳定：让模型直接返回 JSON 很脆弱，生产实现一般会改成 tool calling 或更强约束
+- 记忆整合输出不稳定：让模型直接返回 JSON 很脆弱，真实 nanobot 把“压缩旧消息”和“整理长期记忆”拆成 Consolidator + Dream 两层来降低风险
 - 上下文仍然爆掉：说明你只有“保存历史”，没有真正限制传给模型的历史窗口
 
 ## 完整代码
@@ -288,7 +304,7 @@ nanobot 的实现更精巧——它通过 function calling 让 LLM 调用 `save_
 
 - `SessionManager`：负责把会话历史保存和读回来
 - `ContextBuilder`：负责把静态文件、记忆和运行时信息拼成完整上下文
-- `MemoryStore` / `consolidate_memory()`：负责把旧消息折叠成长期记忆
+- `MemoryStore` / `consolidate_memory()`：负责把旧消息折叠成摘要归档和长期记忆
 
 带着这 3 个问题去看代码，会比直接从头扫到尾轻松很多。
 
@@ -576,8 +592,8 @@ Bot: 你叫小明，你喜欢用 Python。
 | 概念 | 我们的代码 | nanobot 的代码 |
 |------|-----------|---------------|
 | Session 持久化 | JSONL 简单序列化 | JSONL + metadata 行 + 缓存 + legacy 迁移 |
-| Context Builder | 拼接 Bootstrap 文件 + Memory | 同上 + Skills 摘要 + Runtime Context |
-| 记忆整合 | 简化版 JSON 解析 | Function Calling + 写入 MEMORY.md + HISTORY.md |
+| Context Builder | 拼接 Bootstrap 文件 + Memory | 同上 + Skills 摘要 + Runtime Context + 最近历史摘要 |
+| 记忆整合 | 简化版 JSON 解析 | Consolidator 写入 `history.jsonl` + Dream 整理 `SOUL.md` / `USER.md` / `MEMORY.md` |
 | Bootstrap 文件 | 4 个 Markdown | 同样 4 个，但有模板同步机制 |
 
 ## 还缺什么？

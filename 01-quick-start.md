@@ -46,6 +46,12 @@ uv tool install nanobot-ai
 nanobot onboard
 ```
 
+如果你更想跟着菜单一步步配置，也可以用交互式向导：
+
+```bash
+nanobot onboard --wizard
+```
+
 这条命令做了三件事：
 
 1. 在 `~/.nanobot/config.json` 生成默认配置
@@ -78,20 +84,22 @@ Next steps:
   },
   "agents": {
     "defaults": {
+      "provider": "openrouter",
       "model": "your-provider-supported-model"
     }
   }
 }
 ```
 
-> **其他 Provider 也可以。** nanobot 支持多种 LLM 提供商（OpenAI、Anthropic、DeepSeek、Gemini 等）。
+> **其他 Provider 也可以。** nanobot 支持多种 LLM 提供商（OpenAI、Anthropic、DeepSeek、Gemini、Hugging Face、Bedrock、Ollama / LM Studio 本地模型等）。
 > 只需在 `providers` 里填对应的 key，在 `model` 里写当前 provider 支持、且你账号可用的模型名即可。
 >
-> 第一次跟做时，尽量只改两处：`apiKey` 和 `model`。先不要一边换 provider，一边换安装方式，一边再改工作区路径。
+> 第一次跟做 OpenRouter 路线时，尽量只改两处：`apiKey` 和 `model`，`provider` 先保持 `openrouter`。先不要一边换 provider，一边换安装方式，一边再改工作区路径。
 
 如果你不确定该填什么，先抓住这条最小原则：
 
 - `apiKey`：填你已经验证可用的密钥
+- `provider`：填这把 key 属于哪个 provider；不确定时先显式写出来，少依赖自动识别
 - `model`：填当前 provider 控制台里能直接调用的聊天模型名
 
 也就是说，**这一章的目标不是“选到最优模型”**，而是“先让一次请求成功发出去并返回结果”。
@@ -152,7 +160,7 @@ $ nanobot agent -m "你好，请用一句话介绍你自己"
 
 1. 先看 `nanobot --version` 是否成功
 2. 再看 `nanobot onboard` 是否成功创建配置和工作区
-3. 再看 `config.json` 里是不是只改了 `apiKey` 和 `model`
+3. 再看 `config.json` 里是不是只改了 `apiKey`、`provider` 和 `model` 这几个必要字段
 4. 最后才去怀疑 provider、模型权限或网络问题
 
 ## 1.7 这一章先不要做的事
@@ -224,7 +232,7 @@ AgentLoop 是 nanobot 的"大脑"，它按照这个循环工作（可从 `nanobo
      └──────────────────────────────┘
 ```
 
-这就是经典的 **ReAct 循环**（Reasoning + Acting）：LLM 思考 → 调用工具 → 观察结果 → 再思考，直到给出最终回答。默认最多循环 40 次（`max_iterations=40`）。
+这就是经典的 **ReAct 循环**（Reasoning + Acting）：LLM 思考 → 调用工具 → 观察结果 → 再思考，直到给出最终回答。当前默认最多 200 次工具迭代（由 `agents.defaults.maxToolIterations` 控制）。
 
 ### 工作区 (Workspace) 是什么？
 
@@ -239,12 +247,12 @@ workspace/
 ├── HEARTBEAT.md  ← 周期性任务
 ├── memory/
 │   ├── MEMORY.md ← 长期记忆（每次对话都会读取）
-│   └── HISTORY.md← 历史日志（可搜索）
+│   └── history.jsonl ← 历史摘要归档（可搜索）
 └── skills/       ← 自定义技能目录
 ```
 
 这些文件会被注入到 LLM 的 System Prompt 中。**修改它们就能改变 Bot 的行为——不需要写代码。**
 
-这里有一个理解上的简化：文档先讲主干机制，实际实现里还会附带运行时信息、平台策略和技能摘要等内容。第一次阅读时先抓住主线就够了，后面章节再补细节。
+这里有一个理解上的简化：文档先讲主干机制，实际实现里还会附带运行时信息、平台策略、技能摘要和最近历史摘要等内容。`HISTORY.md` 是旧版本的历史日志格式；当前版本会使用 `memory/history.jsonl`，并在升级时尽量迁移旧文件。第一次阅读时先抓住主线就够了，后面章节再补细节。
 
 下一章我们就来做这件事。

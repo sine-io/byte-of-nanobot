@@ -69,30 +69,17 @@ curl -s "wttr.in/London?format=3"
 # 第 1 层：Skills 摘要始终注入到 system prompt
 skills_summary = self.skills.build_skills_summary()
 if skills_summary:
-    parts.append(f"""# Skills
-
-The following skills extend your capabilities. To use a skill,
-read its SKILL.md file using the read_file tool.
-...
-{skills_summary}""")
+    parts.append(render_template("agent/skills_section.md", skills_summary=skills_summary))
 ```
 
-摘要是 XML 格式的，长这样：
+当前摘要是轻量 Markdown 列表，长这样：
 
-```xml
-<skills>
-  <skill available="true">
-    <name>weather</name>
-    <description>Get current weather and forecasts</description>
-    <location>/path/to/weather/SKILL.md</location>
-  </skill>
-  <skill available="true">
-    <name>github</name>
-    <description>Interact with GitHub using the gh CLI</description>
-    <location>/path/to/github/SKILL.md</location>
-  </skill>
-</skills>
+```markdown
+- **weather** — Get current weather and forecasts  `/path/to/weather/SKILL.md`
+- **github** — Interact with GitHub using the `gh` CLI  `/path/to/github/SKILL.md`
 ```
+
+如果某个 Skill 声明了本机依赖（例如 `curl`、`gh` 或某个环境变量）但当前环境不满足，摘要里会标出 unavailable，Agent 就不应该强行使用它。
 
 当用户问"今天天气怎么样"时，Agent 看到摘要里有一个 `weather` Skill，就用 `read_file` 工具读取完整的 `SKILL.md`，学会怎么用 `curl` 查天气，然后执行命令返回结果。
 

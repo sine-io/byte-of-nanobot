@@ -87,6 +87,7 @@
 - Provider 是什么
 - AgentLoop 怎么工作
 - Skill 为什么能按需加载
+- Memory / Dream 如何把长对话沉淀成可恢复的长期记忆
 - MessageBus 为什么能支持多平台
 
 <a id="path-c"></a>
@@ -169,7 +170,7 @@ python -m mkdocs build --strict
 ## 学完后你能做到什么
 
 - 对使用者：你可以定制自己的 nanobot，并把它部署到真实聊天平台
-- 对学习者：你可以解释 Prompt、Skill、Memory、MessageBus 这些主干设计
+- 对学习者：你可以解释 Prompt、Skill、Memory / Dream、MessageBus 这些主干设计
 - 对程序员：你可以写出一个属于自己的教学版 Agent，并知道下一步该补哪些工程能力
 
 ## 第一次成功的最低标准

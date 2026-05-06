@@ -61,7 +61,7 @@ python -m mkdocs build --strict
 2. provider 选对了，但 key 属于另一个 provider
 3. model 和 provider 不匹配
 
-第一次跟做时，最稳的做法是：**只改 `apiKey` 和 `model` 两处，先让一次请求成功。**
+第一次跟做时，最稳的做法是：**只改 `apiKey`、`provider` 和 `model` 这几个必要字段，先让一次请求成功。**
 
 ### 现象：模型不存在 / 模型不可用
 
@@ -163,7 +163,51 @@ nanobot gateway
 
 先把最短收发链路跑通，再考虑 `systemd` 或 Docker。
 
-## 6. Docs 站点构建问题
+### 现象：Docker 里找不到配置或工作区
+
+当前官方 Docker 镜像默认使用非 root 用户 `nanobot`，配置目录在容器内是：
+
+```text
+/home/nanobot/.nanobot
+```
+
+所以挂载应类似：
+
+```bash
+docker run -v ~/.nanobot:/home/nanobot/.nanobot -p 18790:18790 nanobot gateway
+```
+
+如果你把宿主机目录挂到了 `/root/.nanobot`，新版本容器里的 nanobot 可能读不到配置。
+
+## 6. 记忆文件和 Dream
+
+### 现象：教程或旧笔记里写的是 `HISTORY.md`，但工作区里没有
+
+这是版本差异。当前 nanobot 使用：
+
+- `memory/MEMORY.md`：长期记忆
+- `memory/history.jsonl`：对话摘要归档
+- `memory/.cursor`、`memory/.dream_cursor`：内部游标
+
+旧版本的 `HISTORY.md` 会被尽量迁移为 `history.jsonl`。排查记忆问题时，优先看当前文件，而不是旧文件名。
+
+### 现象：长期记忆好像没有立刻更新
+
+先区分两件事：
+
+1. `history.jsonl` 是否已经追加了旧对话摘要
+2. Dream 是否已经把这些摘要整理进 `SOUL.md` / `USER.md` / `MEMORY.md`
+
+可以在聊天里用：
+
+```text
+/dream
+/dream-log
+```
+
+手动触发和查看 Dream 记忆整理结果。
+
+## 7. Docs 站点构建问题
 
 ### 现象：MkDocs 构建失败
 
@@ -182,7 +226,7 @@ python -m mkdocs build --strict
 
 如果你同时维护根目录 Markdown 和 `docs-site/` 副本，改完后要确认两边是同步的。
 
-## 7. 什么时候该停下来，不要继续乱改
+## 8. 什么时候该停下来，不要继续乱改
 
 出现下面这些情况时，最好的动作通常不是继续改文档或配置，而是先缩小范围：
 

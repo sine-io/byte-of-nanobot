@@ -264,16 +264,19 @@ flowchart TD
 
 ### 记忆系统如何工作？
 
-除了四个静态文件，nanobot 还有一个动态的**两层记忆系统**（`nanobot/agent/memory.py`）：
+除了四个静态文件，nanobot 还有一个动态的**分层记忆系统**（`nanobot/agent/memory.py`）：
 
 | 层 | 文件 | 特点 |
 |---|---|---|
 | 长期记忆 | `memory/MEMORY.md` | 每次对话都加载到上下文中，存放重要事实 |
-| 历史日志 | `memory/HISTORY.md` | 不加载到上下文，可用 grep 搜索 |
+| 历史摘要归档 | `memory/history.jsonl` | 追加式 JSONL，不直接当作最终记忆，可用 grep / jq 搜索 |
+| Dream 游标 | `memory/.cursor` / `memory/.dream_cursor` | 记录摘要写入位置和 Dream 已处理到哪里 |
 
-当对话变长时，nanobot 会自动用 LLM 做**记忆整合**：
-- 从旧对话中提取重要事实 → 写入 `MEMORY.md`
-- 把对话摘要 → 追加到 `HISTORY.md`
+当对话变长时，nanobot 会先用 **Consolidator** 把旧对话压缩成摘要，追加到 `history.jsonl`。随后 **Dream** 会周期性读取这些新摘要，再谨慎地编辑 `SOUL.md`、`USER.md` 和 `MEMORY.md`：
+
+- 旧对话摘要 → 追加到 `memory/history.jsonl`
+- 稳定事实 / 偏好 / 项目背景 → 由 Dream 整理进长期文件
+- Dream 修改长期文件后，会用轻量 Git 历史记录变化，方便查看和恢复
 
 从理解上，你可以把它看成“旧对话被折叠进记忆层”。但具体实现不一定是直接删除历史消息；当前版本更接近“保留原始消息，同时只把未整合部分继续送进上下文”。
 
