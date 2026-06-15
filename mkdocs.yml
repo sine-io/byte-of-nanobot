@@ -46,11 +46,13 @@ markdown_extensions:
 nav:
   - 首页: README.md
   - 新手村:
+      - 第 0 章：开始之前: 00-before-you-start.md
       - 第 1 章：5 分钟跑起来: 01-quick-start.md
-      - 第 2 章：用 Markdown 定义 Bot: 02-soul.md
+      - 第 2 章：让 Bot 有个性: 02-soul.md
       - 第 3 章：教 Bot 新技能: 03-skills.md
-      - 第 4 章：先部署到 Telegram: 04-deploy.md
-      - 第 5 章：做一个真实可用的 Bot: 05-first-real-bot.md
+      - 第 4 章：本地完整验收: 04-local-integration.md
+      - 第 5 章：部署到 Telegram: 05-deploy-telegram.md
+      - 第 6 章：多场景案例库: 06-use-cases.md
   - 进阶营:
       - 导读: build/README.md
       - 第 1 章：最简 Agent: build/01-simplest-agent.md
@@ -61,5 +63,8 @@ nav:
       - 第 6 章：从 Mini Agent 到真实项目: build/06-from-mini-agent-to-real-bot.md
   - 附录:
       - 环境预检: appendix-environment-precheck.md
+      - 统一排障手册: appendix-troubleshooting-guide.md
       - 常见坑与排障: appendix-troubleshooting.md
+      - 术语表: appendix-glossary.md
+      - 诊断脚本: scripts/README.md
       - 进阶营配套示例: examples/part2/README.md

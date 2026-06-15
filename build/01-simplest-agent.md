@@ -2,23 +2,50 @@
 
 > 用 40 行代码写一个能对话的 AI。
 
-## 目标
+## 本章目标
 
 写一个最小的程序：接收用户输入 → 发给 LLM → 打印回复 → 循环。
 
-## 代码
+---
+
+## 上一章回顾
+
+这是进阶营的第一章，没有"上一章"。如果你是从新手村过来的，你已经知道：
+- nanobot 能做什么（新手村第 0-6 章）
+- 如何配置和使用 nanobot（第 1-3 章）
+
+现在我们要从零开始，手写一个教学版 Agent，理解它的核心原理。
+
+---
+
+## 为什么从 40 行开始？
+
+**问题：** 一个能对话的 AI Agent 最少需要多少代码？
+
+**答案：** 40 行就够了。
+
+这 40 行代码包含了 Agent 的最核心要素：
+1. 连接 LLM
+2. 管理对话历史
+3. 多轮交互
+
+其他功能（工具、记忆、多平台）都是在这个基础上添加的。
+
+---
+
+## 完整代码
 
 ```python
 """mini_agent.py — 最简 Agent，40 行"""
 
 from openai import OpenAI
 
-# 连接 LLM（OpenAI 兼容接口，支持 OpenRouter / DeepSeek / 本地模型等）
+# 连接 LLM（OpenAI 兼容接口）
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",  # 换成你的 provider
     api_key="sk-or-v1-你的密钥",               # 换成你的 key
 )
-MODEL = "your-provider-supported-model"        # 换成你当前 provider 支持的模型
+MODEL = "openai/gpt-4-turbo"                   # 换成你的模型
 
 def chat(messages: list[dict]) -> str:
     """调用 LLM，返回回复文本。"""
@@ -51,93 +78,192 @@ if __name__ == "__main__":
 ```
 
 运行：
-
 ```bash
 python mini_agent.py
 ```
 
-## 它做了什么？
+---
 
-```
-用户输入 → 追加到 messages → 发给 LLM → 拿到回复 → 追加到 messages → 打印
-                                                        ↑
-                                            下一轮对话带上完整历史
+## 核心机制解析
+
+### 关键设计：messages 列表是有状态的
+
+```mermaid
+flowchart LR
+    A[用户输入] --> B[追加到 messages]
+    B --> C[发给 LLM]
+    C --> D[获取回复]
+    D --> E[追加到 messages]
+    E --> F[打印回复]
+    F --> A
 ```
 
-关键设计：**messages 列表是有状态的**。每次对话都带上完整历史，LLM 才能理解上下文。这就是为什么它"记得"你之前说了什么。
+**为什么需要保存历史？**
+
+```python
+# 第一轮对话
+messages = [
+    {"role": "system", "content": "你是助手"},
+    {"role": "user", "content": "我叫小明"}
+]
+# Bot: 你好，小明！
+
+# 第二轮对话（带上第一轮的历史）
+messages = [
+    {"role": "system", "content": "你是助手"},
+    {"role": "user", "content": "我叫小明"},
+    {"role": "assistant", "content": "你好，小明！"},
+    {"role": "user", "content": "我叫什么名字？"}  # ← 新问题
+]
+# Bot: 你叫小明。  # ← 能回答，因为有历史
+```
+
+如果不保存历史，第二轮对话就会"失忆"。
+
+---
 
 ## 对应 nanobot 的什么？
 
-这 40 行代码对应 nanobot 中的两个模块：
+这 40 行代码对应 nanobot 中的两个核心模块：
 
 ### 1. Provider（`nanobot/providers/`）
 
-我们的 `chat()` 函数就是一个最简的 Provider。nanobot 把它抽象成了类：
+我们的 `chat()` 函数 = nanobot 的 Provider
 
 ```python
-# nanobot/providers/base.py（简化版）
+# 我们的教学版
+def chat(messages: list[dict]) -> str:
+    response = client.chat.completions.create(...)
+    return response.choices[0].message.content
+
+# nanobot 的生产版（简化）
 class LLMProvider(ABC):
-    async def chat(self, messages, tools=None, model=None, ...) -> LLMResponse:
+    async def chat(self, messages, tools=None, ...) -> LLMResponse:
         """调用 LLM 并返回结构化响应"""
-        ...
 ```
 
-nanobot 现在通过 Provider 抽象来屏蔽不同 LLM API 的差异：Claude/Anthropic 走原生 Anthropic SDK；OpenAI、OpenRouter、DeepSeek 等 OpenAI-compatible 服务走 OpenAI SDK 兼容客户端；其他特殊后端由对应 Provider 处理。这里的教学版直接用 `openai` 库，是为了先跑通 OpenAI-compatible 的最短路径，不代表真实 nanobot 只支持 OpenAI。
+**教学版 vs 生产版：**
 
-### 2. 对话历史（`nanobot/session/manager.py`）
+| 方面 | 教学版（本章） | nanobot 生产版 | 差距原因 |
+|------|---------------|---------------|---------|
+| 同步/异步 | 同步 | 异步 | 生产环境需要处理并发 |
+| 错误处理 | 无 | 重试 + 熔断 | 网络不稳定时需要容错 |
+| Provider 支持 | 只有 OpenAI-compatible | 支持 Claude, Gemini, 本地模型等 | 真实场景需要多种选择 |
+| 工具调用 | 无 | 支持 function calling | Agent 的核心能力（下一章会加） |
 
-我们的 `messages` 列表就是一个最简的 Session。nanobot 把它持久化到磁盘：
+---
+
+### 2. Session（`nanobot/session/manager.py`）
+
+我们的 `messages` 列表 = nanobot 的 Session
 
 ```python
-# nanobot/session/manager.py:17（简化版）
+# 我们的教学版
+messages = [...]  # 内存中的列表
+
+# nanobot 的生产版（简化）
 @dataclass
 class Session:
-    key: str                        # "telegram:123456"
-    messages: list[dict] = field(default_factory=list)
-    last_consolidated: int = 0      # 已整合的消息数
+    key: str  # "telegram:123456"
+    messages: list[dict]
+    last_consolidated: int  # 已整合的消息数
 ```
 
-## 局限性
+**教学版 vs 生产版：**
+
+| 方面 | 教学版 | nanobot 生产版 | 差距原因 |
+|------|--------|---------------|---------|
+| 持久化 | 无（重启就丢） | 保存到磁盘 | 生产环境需要跨会话记忆 |
+| 上下文管理 | 无限增长 | 自动压缩旧消息 | 避免撑爆上下文窗口 |
+| 多用户 | 不支持 | 每个用户独立 session | 真实场景有多用户 |
+
+---
+
+## 局限性（为什么需要后续章节）
 
 这个 40 行的 Agent 只能**聊天**。它不能：
 
-- 执行命令、读写文件（没有工具）
-- 记住跨会话的信息（重启就忘了）
-- 连接 Telegram 等平台（只有终端）
+| 不能做的事 | 原因 | 哪一章解决 |
+|-----------|------|-----------|
+| 执行命令、读写文件 | 没有工具系统 | 第 2 章 |
+| 记住跨会话的信息 | 没有持久化 | 第 3 章 |
+| 接入 Telegram 等平台 | 只有终端交互 | 第 4 章 |
+| 动态学习新能力 | 没有 Skill 系统 | 第 5 章 |
+
+---
+
+## 最小验证步骤
+
+运行代码前，先确认：
+- [ ] 已安装 `openai` 库：`pip install openai`
+- [ ] 已配置正确的 `base_url`、`api_key`、`MODEL`
+
+运行后，验证：
+
+**测试 1：基本对话**
+```
+You: 你好
+Bot: 你好！有什么我可以帮助你的吗？
+```
+
+**测试 2：上下文记忆**
+```
+You: 我叫小明
+Bot: 你好，小明！
+
+You: 我叫什么名字？
+Bot: 你叫小明。  # ← 关键：能记住第一轮的内容
+```
+
+**测试 3：退出**
+```
+You: exit
+# 程序正常退出
+```
+
+---
+
+## 常见失败点
+
+| 症状 | 原因 | 解决方案 |
+|------|------|---------|
+| `401 Unauthorized` | API Key 无效 | 检查 `api_key` 是否正确 |
+| `Model not found` | 模型名称错误 | 去 provider 文档确认模型名 |
+| 第二轮像没记忆 | `messages` 没正确维护 | 确认 `messages.append()` 的顺序 |
+| 返回空字符串 | response 结构不符合预期 | 打印 `response` 查看实际结构 |
+
+---
 
 ## 本章你真正学到的抽象
 
 这一章最重要的不是 40 行代码本身，而是两个基础抽象：
 
-- `Provider`：负责把 `messages` 发给模型，再把回复取回来
-- `Session` 的最小形态：一组按顺序累积的消息历史
+1. **Provider**：负责把 `messages` 发给模型，再把回复取回来
+2. **Session**：一组按顺序累积的消息历史
 
-后面所有复杂能力，几乎都建立在这两个前提之上。没有稳定的消息格式和对话状态，工具、记忆、多平台都无从谈起。
+**为什么这两个抽象重要？**
 
-## 最小验证步骤
+后面所有复杂能力，几乎都建立在这两个前提之上：
+- 工具调用需要 Provider 支持 function calling（第 2 章）
+- 记忆需要 Session 持久化（第 3 章）
+- 多平台需要多个 Session 并存（第 4 章）
+- Skill 需要动态修改 system message（第 5 章）
 
-至少做下面 3 步验证：
+没有稳定的消息格式和对话状态，这些能力都无从谈起。
 
-1. 运行 `python mini_agent.py`，确认程序能进入交互循环
-2. 连续问两句有关联的问题，确认第二句回答会利用第一句上下文
-3. 输入 `exit` 或 `quit`，确认程序能正常退出
-
-你应该观察到的现象：
-
-- 第一轮有正常文本回复
-- 第二轮不是“失忆式回答”
-- 没有因为 API / model 配置错误而直接异常退出
-
-## 常见失败点
-
-- `401` / `Unauthorized`：API Key 无效，或 base URL / provider 不匹配
-- 模型名报错：先确认该模型是否真的属于当前 provider
-- 第二轮像没记忆：通常是 `messages.append(...)` 的顺序写错，或者没有把 assistant 回复也放回历史
-- 返回结构不符合预期：不同 OpenAI 兼容接口在字段细节上可能略有差异，先打印 `response` 检查真实返回
+---
 
 ## 配套示例
 
 - 对应代码快照：[examples/part2/ch01-mini-agent.py](../examples/part2/ch01-mini-agent.py)
 - 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
 
-下一章我们加上工具系统，让它从"聊天机器人"变成"AI Agent"。
+---
+
+## 下一步
+
+✅ **验证通过** → 继续 [第 2 章：工具系统](02-tool-system.md)
+
+❌ **验证失败** → 检查上面的"常见失败点"
+
+🤔 **想先看实际效果** → 回到 [新手村第 1 章](../01-quick-start.md) 直接用 nanobot
