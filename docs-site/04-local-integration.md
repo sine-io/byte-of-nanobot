@@ -1,0 +1,1 @@
+--8<-- "04-local-integration.md"
