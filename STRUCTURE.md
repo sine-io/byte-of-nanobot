@@ -6,36 +6,44 @@
 
 ```
 byte-of-nanobot/
-├── *.md                      # 教程源文件（被 MkDocs 引用）
-├── docs-site/                # MkDocs 文档目录
-│   ├── *.md                 # 包装文件（使用 --8<-- 语法引用根目录源文件）
-│   ├── build/               # 进阶教程
-│   ├── examples/            # 示例代码
-│   ├── scripts/             # 脚本文档
-│   └── stylesheets/         # 自定义样式
-├── build/                    # 进阶教程源文件
-├── examples/                 # 示例代码源文件
-├── scripts/                  # 诊断脚本
-├── .dev-notes/              # 开发笔记和设计文档
-├── .archive/                # 归档的临时文件和旧版本
-├── .github/workflows/       # GitHub Actions 工作流
-└── site/                     # MkDocs 构建输出（git ignored）
+├── docs/                         # MkDocs 文档目录
+│   ├── index.md                 # 首页
+│   ├── zh-cn/                   # 中文文档
+│   │   ├── README.md           # 阅读指南
+│   │   ├── zero/               # 新手村教程
+│   │   ├── hero/               # 进阶营教程
+│   │   ├── appendix/           # 附录
+│   │   ├── examples/           # 示例代码
+│   │   └── scripts/            # 脚本文档
+│   ├── stylesheets/            # 自定义样式
+│   └── superpowers/            # 开发笔记（excluded）
+├── scripts/                      # 实际脚本
+├── .archive/                    # 归档文件
+├── .github/workflows/           # GitHub Actions
+├── mkdocs.yml                   # MkDocs 配置
+├── requirements.txt             # 文档构建依赖
+└── README.md                    # GitHub 仓库首页
 ```
 
 ## 设计原理
 
-### 为什么教程源文件在根目录？
+### 文档组织方式
 
-使用 MkDocs 的 `pymdownx.snippets` 插件：
-- 根目录的 `README.md` 既能在 GitHub 首页显示，又能被 MkDocs 使用
-- 教程文件在根目录便于直接浏览和编辑
-- `docs-site/` 中的包装文件使用 `--8<-- "filename.md"` 语法引用源文件
-- MkDocs 构建时自动展开引用
+参考 [byte-of-vdbench](https://github.com/sine-io/byte-of-vdbench) 的目录结构：
+
+- **所有文档在 `docs/` 下**：直接存放，不使用包装文件或 snippets 插件
+- **按语言组织**：`docs/zh-cn/` 存放中文内容，便于未来扩展其他语言
+- **按类型分类**：
+  - `zero/` - 新手村（快速上手）
+  - `hero/` - 进阶营（深入理解）
+  - `appendix/` - 附录（参考资料）
+  - `examples/` - 示例代码
+  - `scripts/` - 脚本文档
 
 ### 工作流程
 
-1. **编辑教程**：修改根目录的 `.md` 源文件
-2. **本地预览**：`mkdocs serve` （可选）
+1. **编辑教程**：直接修改 `docs/zh-cn/` 下的 `.md` 文件
+2. **本地预览**：`mkdocs serve`（可选）
 3. **提交更改**：推送到 main 分支
 4. **自动部署**：GitHub Actions 自动构建并部署到 GitHub Pages
 
@@ -43,7 +51,7 @@ byte-of-nanobot/
 
 - **Workflow**：`.github/workflows/pages.yml`
 - **MkDocs 配置**：`mkdocs.yml`
-- **文档目录**：`docs_dir: docs-site`
+- **文档目录**：`docs_dir: docs`
 - **构建目录**：`site_dir: site`
 - **部署 URL**：https://sine-io.github.io/byte-of-nanobot/
 
@@ -51,17 +59,53 @@ byte-of-nanobot/
 
 ### 添加新教程
 
-1. 在根目录创建源文件：`07-new-chapter.md`
-2. 在 `docs-site/` 创建包装文件：
-   ```markdown
-   --8<-- "07-new-chapter.md"
-   ```
-3. 更新 `mkdocs.yml` 的 `nav` 部分
+1. 在对应目录创建源文件：
+   - 新手村：`docs/zh-cn/zero/XX-new-chapter.md`
+   - 进阶营：`docs/zh-cn/hero/XX-new-chapter.md`
+2. 更新 `mkdocs.yml` 的 `nav` 部分
 
 ### 更新现有教程
 
-直接编辑根目录的源文件即可，无需修改 `docs-site/` 中的包装文件。
+直接编辑 `docs/zh-cn/` 下的源文件即可。
+
+### 添加示例代码
+
+将代码文件放在 `docs/zh-cn/examples/` 对应目录下，MkDocs 会自动处理。
 
 ### 清理临时文件
 
 临时文件和旧版本应移到 `.archive/` 目录，而不是直接删除。
+
+## 与旧版本的差异
+
+### 旧结构（已废弃）
+```
+byte-of-nanobot/
+├── *.md                      # 教程源文件（根目录）
+├── docs-site/                # 包装文件（使用 --8<-- 语法）
+├── build/                    # 进阶教程源文件
+└── examples/                 # 示例代码源文件
+```
+
+### 新结构（当前）
+```
+byte-of-nanobot/
+└── docs/                     # 所有文档在这里
+    └── zh-cn/
+        ├── zero/            # 新手村
+        ├── hero/            # 进阶营
+        ├── appendix/        # 附录
+        └── examples/        # 示例
+```
+
+### 改进点
+
+1. **更清晰**：所有文档在 `docs/` 下，按类型组织
+2. **更简单**：不再使用 snippets 插件和包装文件
+3. **国际化友好**：`zh-cn/` 结构便于扩展
+4. **一致性**：与 byte-of-vdbench 风格统一
+
+## 参考
+
+- [byte-of-vdbench](https://github.com/sine-io/byte-of-vdbench) - 参考项目
+- [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) - 主题文档

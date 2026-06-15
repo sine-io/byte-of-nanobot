@@ -1,1 +1,0 @@
---8<-- "appendix-environment-precheck.md"
