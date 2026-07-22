@@ -10,7 +10,7 @@
 - `Tool` + `Registry`：负责声明与执行工具
 - `ReAct Loop`：负责“思考 -> 行动 -> 观察 -> 再思考”
 - `Session` / `Memory` / `Context`：负责状态与上下文
-- `MessageBus` / `Channel`：负责把 Agent 从终端扩展到多平台
+- `MessageBus` / `Channel`：用简化教学模型说明如何把 Agent 从终端扩展到多平台
 - `Skills`：负责按需注入领域知识
 
 这意味着你已经不是在看概念图，而是真的有了一个能对话、能做事、能扩展、能接平台的教学版 Agent。
@@ -201,10 +201,14 @@ Agent 项目最容易被低估的不是 Prompt，而是**工具风险**。
 
 你不需要一开始就通读整个仓库。更高效的方式是“带着问题回去看”：
 
-- 想看多 provider 配置怎么做，读 `providers/`
-- 想看工具安全边界，读 `agent/tools/`
-- 想看上下文和记忆，读 `agent/context.py`、`agent/memory.py`
-- 想看多平台接入，读 `bus/` 和 `channels/`
+- 想看多 Provider 配置怎么做，读 v0.2.2 固定版本的 [`providers/`](https://github.com/HKUDS/nanobot/tree/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/providers)
+- 想看工具安全边界，读 [`agent/tools/`](https://github.com/HKUDS/nanobot/tree/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/tools)
+- 想看上下文和记忆，读 [`ContextBuilder`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/context.py) 与 [`MemoryStore` / `Consolidator`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/memory.py)
+- 想看消息解耦，先对照 [`MessageBus`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/bus/queue.py)，再读 [`ChannelManager`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/channels/manager.py)；第 4 章代码只是把主干摊开的简化模型
+- 想看计划任务与 Heartbeat，读 [`CronService`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/cron/service.py) 和 Gateway 的 [`cli/commands.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/cli/commands.py)，不要寻找已经不存在的独立 Heartbeat 模块
+
+!!! info "main 差异：插件化 Channel 的阅读入口"
+    v0.2.2 用户仍按稳定版命令和配置操作。仅当你要审阅固定对照 `main@b189a376` 的新结构时，才从各插件包的 `manifest.py` 进入实现，例如 [`telegram/runtime.py`](https://github.com/HKUDS/nanobot/blob/b189a37648e4fa64f662b15de4f78ffd0bab403b/nanobot/channels/telegram/runtime.py) 与 [`websocket/runtime.py`](https://github.com/HKUDS/nanobot/blob/b189a37648e4fa64f662b15de4f78ffd0bab403b/nanobot/channels/websocket/runtime.py)。浏览器服务的其余边界继续沿 [`webui/`](https://github.com/HKUDS/nanobot/tree/b189a37648e4fa64f662b15de4f78ffd0bab403b/nanobot/webui) 追踪。
 
 这样源码会从“很大一片目录”变成“带答案的参考实现”。
 
