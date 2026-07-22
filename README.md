@@ -53,12 +53,12 @@ flowchart LR
     F --> G[第6章<br/>多场景案例]
 ```
 
-1. 读 [第 0 章：开始之前](00-before-you-start.md)，确认环境准备好
-2. 读 [第 1 章：5 分钟跑起来](01-quick-start.md)，把 CLI 跑通
-3. 读 [第 2 章：让 Bot 有个性](02-soul.md) 和 [第 3 章：教 Bot 新技能](03-skills.md)，完成"人格 + 规则 + Skill"闭环
-4. 读 [第 4 章：本地完整验收](04-local-integration.md)，在本地完成端到端测试
-5. 读 [第 5 章：部署到 Telegram](05-deploy-telegram.md)，接入真实聊天平台
-6. 读 [第 6 章：多场景案例库](06-use-cases.md)，找到适合你的配置模板
+1. 读 [第 0 章：开始之前](docs/zh-cn/zero/00-before-you-start.md)，确认环境准备好
+2. 读 [第 1 章：5 分钟跑起来](docs/zh-cn/zero/01-quick-start.md)，把 CLI 跑通
+3. 读 [第 2 章：让 Bot 有个性](docs/zh-cn/zero/02-soul.md) 和 [第 3 章：教 Bot 新技能](docs/zh-cn/zero/03-skills.md)，完成"人格 + 规则 + Skill"闭环
+4. 读 [第 4 章：本地完整验收](docs/zh-cn/zero/04-local-integration.md)，在本地完成端到端测试
+5. 读 [第 5 章：部署到 Telegram](docs/zh-cn/zero/05-deploy-telegram.md)，接入真实聊天平台
+6. 读 [第 6 章：多场景案例库](docs/zh-cn/zero/06-use-cases.md)，找到适合你的配置模板
 
 **预计时间：** 2-3 小时
 
@@ -72,13 +72,13 @@ flowchart LR
 
 | 章节 | 内容 | 你将学到 |
 |------|------|----------|
-| [第 0 章](00-before-you-start.md) | 开始之前 | 判断适合性、环境检查、用户画像 |
-| [第 1 章](01-quick-start.md) | 5 分钟跑起来 | 安装、配置、第一次对话 |
-| [第 2 章](02-soul.md) | 让 Bot 有个性 | 编辑人格、行为、用户画像 |
-| [第 3 章](03-skills.md) | 教 Bot 新技能 | 创建自定义 Skill，理解触发机制 |
-| [第 4 章](04-local-integration.md) | 本地完整验收 | 端到端测试，分层排查问题 |
-| [第 5 章](05-deploy-telegram.md) | 部署到 Telegram | Gateway 模式，接入真实平台 |
-| [第 6 章](06-use-cases.md) | 多场景案例库 | 文件管理/代码助手/知识管理模板 |
+| [第 0 章](docs/zh-cn/zero/00-before-you-start.md) | 开始之前 | 判断适合性、环境检查、用户画像 |
+| [第 1 章](docs/zh-cn/zero/01-quick-start.md) | 5 分钟跑起来 | 安装、配置、第一次对话 |
+| [第 2 章](docs/zh-cn/zero/02-soul.md) | 让 Bot 有个性 | 编辑人格、行为、用户画像 |
+| [第 3 章](docs/zh-cn/zero/03-skills.md) | 教 Bot 新技能 | 创建自定义 Skill，理解触发机制 |
+| [第 4 章](docs/zh-cn/zero/04-local-integration.md) | 本地完整验收 | 端到端测试，分层排查问题 |
+| [第 5 章](docs/zh-cn/zero/05-deploy-telegram.md) | 部署到 Telegram | Gateway 模式，接入真实平台 |
+| [第 6 章](docs/zh-cn/zero/06-use-cases.md) | 多场景案例库 | 文件管理/代码助手/知识管理模板 |
 
 **学完后你应该能：**
 - 跑通 nanobot
@@ -95,13 +95,13 @@ flowchart LR
 适合想理解 nanobot 主干机制的人。推荐读法：
 
 1. 先读新手村（第 0-6 章），知道功能入口
-2. 再对照读 `build/` 中对应章节，理解实现原理
+2. 再对照读 `docs/zh-cn/hero/` 中对应章节，理解实现原理
 
 | 新手村章节 | 对应进阶营章节 | 核心概念 |
 |-----------|--------------|---------|
-| 第 1 章 | [build/第 1 章](build/01-simplest-agent.md) | Provider、Session |
-| 第 3 章 | [build/第 5 章](build/05-skills-and-beyond.md) | Skill 渐进式加载 |
-| 第 5 章 | [build/第 4 章](build/04-message-bus.md) | MessageBus、多平台 |
+| 第 1 章 | [进阶营 第 1 章](docs/zh-cn/hero/01-simplest-agent.md) | Provider、Session |
+| 第 3 章 | [进阶营 第 5 章](docs/zh-cn/hero/05-skills-and-beyond.md) | Skill 渐进式加载 |
+| 第 5 章 | [进阶营 第 4 章](docs/zh-cn/hero/04-message-bus.md) | MessageBus、多平台 |
 
 **学完后你应该能解释：**
 - Provider 是什么
@@ -120,13 +120,13 @@ flowchart LR
 
 | 章节 | 代码量 | 你将构建 | 对应 nanobot 模块 |
 |------|--------|---------|------------------|
-| [导读](build/README.md) | 0 | 理解教学目标 | 整体架构 |
-| [第 1 章](build/01-simplest-agent.md) | ~40 行 | 能对话的 LLM 客户端 | `providers/` |
-| [第 2 章](build/02-tool-system.md) | ~200 行 | 能执行命令的 Agent | `agent/tools/`, `agent/loop.py` |
-| [第 3 章](build/03-memory-and-context.md) | ~300 行 | 有记忆、有个性的 Agent | `agent/context.py`, `session/` |
-| [第 4 章](build/04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
-| [第 5 章](build/05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py` |
-| [第 6 章](build/06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版走向可维护项目 | 工程化边界 |
+| [导读](docs/zh-cn/hero/README.md) | 0 | 理解教学目标 | 整体架构 |
+| [第 1 章](docs/zh-cn/hero/01-simplest-agent.md) | ~40 行 | 能对话的 LLM 客户端 | `providers/` |
+| [第 2 章](docs/zh-cn/hero/02-tool-system.md) | ~200 行 | 能执行命令的 Agent | `agent/tools/`, `agent/loop.py` |
+| [第 3 章](docs/zh-cn/hero/03-memory-and-context.md) | ~300 行 | 有记忆、有个性的 Agent | `agent/context.py`, `session/` |
+| [第 4 章](docs/zh-cn/hero/04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
+| [第 5 章](docs/zh-cn/hero/05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py` |
+| [第 6 章](docs/zh-cn/hero/06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版走向可维护项目 | 工程化边界 |
 
 **学完后你应该能：**
 - 写出一个教学版多轮 Agent
@@ -150,12 +150,12 @@ flowchart LR
 
 ## 📚 附录与配套材料
 
-- [附录：环境预检](appendix-environment-precheck.md) — 适合在"还没开始跟做，但不确定本机和账号是否准备好"时先看
-- [附录：统一排障手册](appendix-troubleshooting-guide.md) — 按层级组织的系统化诊断方案（环境/配置/行为/部署）
-- [附录：常见坑与排障](appendix-troubleshooting.md) — 适合在"哪里不对劲，但还不知道是哪一层出问题"时查
-- [附录：术语表](appendix-glossary.md) — 核心概念和技术术语速查
-- [诊断脚本集合](scripts/README.md) — 自动化环境检查、配置验证、Skill 诊断工具
-- [进阶营配套示例](examples/part2/README.md) — 给程序员的章节快照代码，方便对照 `build/` 边读边跑
+- [附录：环境预检](docs/zh-cn/appendix/environment-precheck.md) — 适合在"还没开始跟做，但不确定本机和账号是否准备好"时先看
+- [附录：统一排障手册](docs/zh-cn/appendix/troubleshooting-guide.md) — 按层级组织的系统化诊断方案（环境/配置/行为/部署）
+- [附录：常见坑与排障](docs/zh-cn/appendix/troubleshooting.md) — 适合在"哪里不对劲，但还不知道是哪一层出问题"时查
+- [附录：术语表](docs/zh-cn/appendix/glossary.md) — 核心概念和技术术语速查
+- [诊断脚本集合](docs/zh-cn/scripts/README.md) — 自动化环境检查、配置验证、Skill 诊断工具
+- [进阶营配套示例](docs/zh-cn/examples/hero/README.md) — 给程序员的章节快照代码，方便对照 `docs/zh-cn/hero/` 边读边跑
 
 ---
 
@@ -166,7 +166,7 @@ flowchart LR
 - 终端 / 命令行工具
 - 如果你要跟做新手村里的 Skill 示例，建议本机已安装 `curl` 和 `python3`
 
-**不确定环境是否准备好？** 先看 [第 0 章：开始之前](00-before-you-start.md)
+**不确定环境是否准备好？** 先看 [第 0 章：开始之前](docs/zh-cn/zero/00-before-you-start.md)
 
 ---
 
@@ -220,7 +220,7 @@ flowchart LR
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements-docs.txt
+python -m pip install -r requirements.txt
 python -m mkdocs serve
 ```
 
@@ -247,35 +247,35 @@ python -m mkdocs serve
 
 | 章节 | 内容 | 你将学到 |
 |------|------|----------|
-| [第 0 章](00-before-you-start.md) | 开始之前 | 判断适合性、环境检查、用户画像、快速诊断 |
-| [第 1 章](01-quick-start.md) | 5 分钟跑起来 | 安装、配置、第一次对话、错误诊断树 |
-| [第 2 章](02-soul.md) | 让 Bot 有个性 | 编辑人格、行为、用户画像、三个配置模板 |
-| [第 3 章](03-skills.md) | 教 Bot 新技能 | 创建 Skill、理解触发机制、分级难度示例 |
-| [第 4 章](04-local-integration.md) | 本地完整验收 | 端到端测试、分层排查、验收记录模板 |
-| [第 5 章](05-deploy-telegram.md) | 部署到 Telegram | Gateway 模式、MessageBus、持续运行方案 |
-| [第 6 章](06-use-cases.md) | 多场景案例库 | 文件管理/代码助手/知识管理完整配置 |
+| [第 0 章](docs/zh-cn/zero/00-before-you-start.md) | 开始之前 | 判断适合性、环境检查、用户画像、快速诊断 |
+| [第 1 章](docs/zh-cn/zero/01-quick-start.md) | 5 分钟跑起来 | 安装、配置、第一次对话、错误诊断树 |
+| [第 2 章](docs/zh-cn/zero/02-soul.md) | 让 Bot 有个性 | 编辑人格、行为、用户画像、三个配置模板 |
+| [第 3 章](docs/zh-cn/zero/03-skills.md) | 教 Bot 新技能 | 创建 Skill、理解触发机制、分级难度示例 |
+| [第 4 章](docs/zh-cn/zero/04-local-integration.md) | 本地完整验收 | 端到端测试、分层排查、验收记录模板 |
+| [第 5 章](docs/zh-cn/zero/05-deploy-telegram.md) | 部署到 Telegram | Gateway 模式、MessageBus、持续运行方案 |
+| [第 6 章](docs/zh-cn/zero/06-use-cases.md) | 多场景案例库 | 文件管理/代码助手/知识管理完整配置 |
 
 ### 进阶营：从零复刻 nanobot
 
 | 章节 | 代码量 | 你将构建 | 对应 nanobot 模块 |
 |------|--------|---------|------------------|
-| [导读](build/README.md) | - | 理解教学目标和架构演进 | 整体架构 |
-| [第 1 章](build/01-simplest-agent.md) | ~40 行 | 能对话的 LLM 客户端 | `providers/` |
-| [第 2 章](build/02-tool-system.md) | ~200 行 | 能执行命令的 Agent | `agent/tools/`, `agent/loop.py` |
-| [第 3 章](build/03-memory-and-context.md) | ~300 行 | 有记忆、有个性的 Agent | `agent/context.py`, `session/` |
-| [第 4 章](build/04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
-| [第 5 章](build/05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py` |
-| [第 6 章](build/06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版走向可维护项目 | 工程化边界 |
+| [导读](docs/zh-cn/hero/README.md) | - | 理解教学目标和架构演进 | 整体架构 |
+| [第 1 章](docs/zh-cn/hero/01-simplest-agent.md) | ~40 行 | 能对话的 LLM 客户端 | `providers/` |
+| [第 2 章](docs/zh-cn/hero/02-tool-system.md) | ~200 行 | 能执行命令的 Agent | `agent/tools/`, `agent/loop.py` |
+| [第 3 章](docs/zh-cn/hero/03-memory-and-context.md) | ~300 行 | 有记忆、有个性的 Agent | `agent/context.py`, `session/` |
+| [第 4 章](docs/zh-cn/hero/04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
+| [第 5 章](docs/zh-cn/hero/05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py` |
+| [第 6 章](docs/zh-cn/hero/06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版走向可维护项目 | 工程化边界 |
 
 ---
 
 ## 🆘 遇到问题？
 
-1. **环境问题（安装、依赖）** → [附录：环境预检](appendix-environment-precheck.md)
-2. **系统化排障** → [附录：统一排障手册](appendix-troubleshooting-guide.md)
-3. **常见坑速查** → [附录：常见坑与排障](appendix-troubleshooting.md)
+1. **环境问题（安装、依赖）** → [附录：环境预检](docs/zh-cn/appendix/environment-precheck.md)
+2. **系统化排障** → [附录：统一排障手册](docs/zh-cn/appendix/troubleshooting-guide.md)
+3. **常见坑速查** → [附录：常见坑与排障](docs/zh-cn/appendix/troubleshooting.md)
 4. **GitHub Issues** → https://github.com/HKUDS/nanobot/issues
 
 ---
 
-**现在开始吧！** → [第 0 章：开始之前](00-before-you-start.md)
+**现在开始吧！** → [第 0 章：开始之前](docs/zh-cn/zero/00-before-you-start.md)

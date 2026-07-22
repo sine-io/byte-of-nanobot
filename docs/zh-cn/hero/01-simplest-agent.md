@@ -255,8 +255,8 @@ You: exit
 
 ## 配套示例
 
-- 对应代码快照：[examples/part2/ch01-mini-agent.py](../examples/part2/ch01-mini-agent.py)
-- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
+- 对应代码快照：[examples/hero/ch01-mini-agent.py](../examples/hero/ch01-mini-agent.py)
+- 配套目录说明：[examples/hero/README.md](../examples/hero/README.md)
 
 ---
 
@@ -266,4 +266,4 @@ You: exit
 
 ❌ **验证失败** → 检查上面的"常见失败点"
 
-🤔 **想先看实际效果** → 回到 [新手村第 1 章](../01-quick-start.md) 直接用 nanobot
+🤔 **想先看实际效果** → 回到 [新手村第 1 章](../zero/01-quick-start.md) 直接用 nanobot

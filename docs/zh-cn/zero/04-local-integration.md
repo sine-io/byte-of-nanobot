@@ -204,7 +204,7 @@ flowchart LR
 
 确保你已经创建了 `~/.nanobot/workspace/skills/exchange-rate/SKILL.md`（第 3 章的示例）。
 
-如果还没创建，回到 [第 3 章 3.4 节](03-skills.md#34-动手创建你的第一个-skill) 完成。
+如果还没创建，回到 [第 3 章 3.4 节](03-skills.md#34-skill) 完成。
 
 ---
 
@@ -562,4 +562,4 @@ nanobot agent -m "test" --verbose
 - Skill 问题 → [第 3 章](03-skills.md)
 - 基础配置问题 → [第 1 章](01-quick-start.md)
 
-❌ **如果不知道问题在哪** → 去 [附录：常见坑与排障](appendix-troubleshooting.md)
+❌ **如果不知道问题在哪** → 去 [附录：常见坑与排障](../appendix/troubleshooting.md)

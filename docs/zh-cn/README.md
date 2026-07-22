@@ -110,7 +110,7 @@ flowchart LR
 | [第 6 章](hero/06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版走向可维护项目 | 工程化边界 |
 
 **配套资料：**
-- [进阶营配套示例代码](examples/part2/README.md)
+- [进阶营配套示例代码](examples/hero/README.md)
 - [诊断脚本](scripts/README.md)
 
 ---

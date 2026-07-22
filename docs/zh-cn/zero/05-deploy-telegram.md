@@ -541,4 +541,4 @@ Slack 配置相对复杂，建议参考官方文档。
 
 ⚠️ **如果 Bot 不回复** → 按照本章的诊断树逐步排查
 
-🤔 **如果想理解 MessageBus 原理** → 去 [进阶营第 4 章：消息总线](build/04-message-bus.md)
+🤔 **如果想理解 MessageBus 原理** → 去 [进阶营第 4 章：消息总线](../hero/04-message-bus.md)

@@ -674,6 +674,6 @@ grep -o "\*\*.*\*\*" <file>
 
 ✅ **如果找到了适合的案例** → 复制配置，修改后测试
 
-🤔 **如果想理解更深层原理** → 去 [进阶营](build/README.md) 看架构设计
+🤔 **如果想理解更深层原理** → 去 [进阶营](../hero/README.md) 看架构设计
 
-🛠️ **如果遇到问题** → 去 [附录：常见坑与排障](appendix-troubleshooting.md)
+🛠️ **如果遇到问题** → 去 [附录：常见坑与排障](../appendix/troubleshooting.md)

@@ -593,7 +593,7 @@ Bot: 运行结果：Hello, World!
 
 ## 配套示例
 
-- 对应代码快照：[examples/part2/ch02-mini-agent-with-tools.py](../examples/part2/ch02-mini-agent-with-tools.py)
-- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
+- 对应代码快照：[examples/hero/ch02-mini-agent-with-tools.py](../examples/hero/ch02-mini-agent-with-tools.py)
+- 配套目录说明：[examples/hero/README.md](../examples/hero/README.md)
 
 下一章解决这些问题。

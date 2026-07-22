@@ -201,11 +201,11 @@ workspace/
 
 ## 相关资源
 
-- [第 1 章：5 分钟跑起来](01-quick-start.md) - 核心概念首次出现
-- [第 2 章：让 Bot 有个性](02-soul.md) - System Prompt 组装
-- [第 3 章：教 Bot 新技能](03-skills.md) - Skill 渐进式加载
-- [进阶营第 1 章](build/01-simplest-agent.md) - Provider 和 Session
-- [进阶营第 4 章](build/04-message-bus.md) - MessageBus 架构
+- [第 1 章：5 分钟跑起来](../zero/01-quick-start.md) - 核心概念首次出现
+- [第 2 章：让 Bot 有个性](../zero/02-soul.md) - System Prompt 组装
+- [第 3 章：教 Bot 新技能](../zero/03-skills.md) - Skill 渐进式加载
+- [进阶营第 1 章](../hero/01-simplest-agent.md) - Provider 和 Session
+- [进阶营第 4 章](../hero/04-message-bus.md) - MessageBus 架构
 
 ---
 

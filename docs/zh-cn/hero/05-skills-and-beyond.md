@@ -307,8 +307,8 @@ Provider        AgentLoop         Channels
 
 ## 配套示例
 
-- 对应代码快照：[examples/part2/ch05-skills-loader.py](../examples/part2/ch05-skills-loader.py)
-- 配套目录说明：[examples/part2/README.md](../examples/part2/README.md)
+- 对应代码快照：[examples/hero/ch05-skills-loader.py](../examples/hero/ch05-skills-loader.py)
+- 配套目录说明：[examples/hero/README.md](../examples/hero/README.md)
 
 这个示例聚焦在 `SkillsLoader` 和技能摘要构建上，因为第 5 章真正新增的抽象核心就在这里。
 

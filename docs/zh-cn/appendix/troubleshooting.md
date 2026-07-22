@@ -45,7 +45,7 @@ nanobot --version
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements-docs.txt
+python -m pip install -r requirements.txt
 python -m mkdocs build --strict
 ```
 
