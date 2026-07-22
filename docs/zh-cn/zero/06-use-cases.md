@@ -10,11 +10,18 @@
 - 📚 **知识管理**：整理笔记、生成摘要、知识检索
 - 🎯 **项目管理**：任务追踪、进度报告、会议记录
 
-这一章提供三个完整的案例，每个都包含：
-- ✅ 四个配置文件（SOUL.md、AGENTS.md、USER.md、TOOLS.md）
-- ✅ 推荐的 Skills
+这一章仍然提供三个完整案例，每个都包含：
+- ✅ 三个 Bootstrap 的职责示例（`AGENTS.md`、`SOUL.md`、`USER.md`）
+- ✅ 应进入长期 Memory 的项目事实
+- ✅ 承载可复用操作流程的 Skill
 - ✅ 验收测试用例
 - ✅ 常见问题排查
+
+!!! note "先按所有权分类"
+
+    行为策略写进 `SOUL.md`，项目规则写进 `AGENTS.md`，用户偏好写进 `USER.md`，长期项目事实由 Dream 整理进 `memory/MEMORY.md`，只有相关任务才需要的操作步骤写进 Skill。硬权限仍由配置、工具和系统隔离负责。
+
+    下面假定每个案例使用独立的 Agent 工作区。如果你只在 WebUI 里选择一个外部项目目录，项目规则放在项目根 `AGENTS.md`，而 Dream 管理的 Memory 仍留在配置中的 Agent 工作区；两者不会自动合并。
 
 ---
 
@@ -91,53 +98,27 @@
 ```markdown
 # User Profile
 
-## Work Environment
-
-- **OS**: macOS / Linux / Windows
-- **主要工作目录**: 
-  - Downloads: ~/Downloads
-  - Documents: ~/Documents
-  - Projects: ~/Projects
-
 ## Preferences
 
 - **命名规范**: kebab-case（小写字母，用短横线分隔）
 - **日期格式**: YYYY-MM-DD
 - **文件组织**: 按类型分文件夹（images/, documents/, archives/）
-
-## File Types
-
-- **文档**: .pdf, .docx, .md
-- **图片**: .jpg, .png, .gif
-- **代码**: .py, .js, .go
-- **压缩**: .zip, .tar.gz
+- **确认方式**: 批量移动前先展示计划和冲突项
 ```
 
 ---
 
-#### `TOOLS.md`
+#### `memory/MEMORY.md` 的目标状态
 
 ```markdown
-# Tool Usage Notes
+# Long-term Memory
 
-## exec
-
-- 批量操作时使用 `for` 循环和 `-n` 参数（dry run）
-- 文件名包含空格时，用引号包裹
-- 操作前用 `ls -la` 确认文件列表
-
-## read_file / write_file
-
-- 读取大文件时，先检查文件大小
-- 写入前确认目标路径存在
-- 操作后验证文件完整性
-
-## Preferred Commands
-
-- 列出文件：`ls -lh` 或 `find`
-- 重命名：`mv` 或 `rename`
-- 批量操作：结合 `find` 和 `xargs`
+- 文件整理项目只处理用户选定的项目目录，不处理系统目录。
+- 当前分类约定为 images、documents、archives、code 和 others。
+- 同名目标文件默认跳过，除非用户为本次任务明确选择其他策略。
 ```
+
+这些是项目的长期约定；让 Dream 根据真实对话整理。具体扫描、预演、冲突处理和脚本参数放在下面的 Skill，不要放进用户画像。
 
 ---
 
@@ -167,6 +148,14 @@ metadata: {"nanobot":{"requires":{"bins":["python3"]}}}
 # File Organizer
 
 Automatically organize files into subdirectories by type.
+
+## Workflow
+
+1. Resolve and display the requested directory.
+2. List candidate files and destination conflicts without modifying anything.
+3. Ask for confirmation before the first move.
+4. Run only inside the confirmed project directory.
+5. Report moved, skipped, and failed files; never silently overwrite.
 
 ## Usage
 
@@ -372,50 +361,27 @@ if __name__ == "__main__":
 ```markdown
 # User Profile
 
-## Tech Stack
-
-- **Backend**: Python (Flask/FastAPI)
-- **Frontend**: React + TypeScript
-- **Database**: PostgreSQL
-- **DevOps**: Docker + GitHub Actions
-
 ## Preferences
 
 - **测试覆盖率**: > 80%
 - **代码风格**: 使用 linter（black, eslint）
 - **文档**: 优先写 docstring，再生成文档
-
-## Project Context
-
-- 正在开发一个 SaaS 项目
-- 团队规模：3-5 人
-- 代码仓库：GitHub 私有仓库
+- **审查输出**: 先列阻塞问题，再列建议
 ```
 
 ---
 
-#### `TOOLS.md`
+#### `memory/MEMORY.md` 的目标状态
 
 ```markdown
-# Tool Usage Notes
+# Long-term Memory
 
-## exec
-
-- 运行测试前，先检查依赖是否安装
-- 运行 linter 时，使用 `--check` 模式（不自动修改）
-- 构建项目时，先清理缓存
-
-## read_file
-
-- 读取代码文件时，注意语法高亮
-- 大文件优先读取关键部分
-- 配置文件优先检查敏感信息
-
-## web_search
-
-- 搜索最佳实践时，优先官方文档
-- 搜索报错信息时，包含版本号
+- 当前项目是一个由小团队维护的 SaaS。
+- 后端使用 Python，前端使用 React + TypeScript，数据库使用 PostgreSQL。
+- CI 在 GitHub Actions 中运行，变更必须通过项目现有测试。
 ```
+
+这些技术栈和架构事实属于项目 Memory。命令、linter 参数和审查清单属于下面的 Skill；用户喜欢什么输出形式才属于 `USER.md`。
 
 ---
 
@@ -436,6 +402,14 @@ metadata: {"nanobot":{"requires":{"bins":["python3"]}}}
 # Code Review
 
 Perform systematic code review.
+
+## Workflow
+
+1. Read the repository's project instructions and existing test commands.
+2. Inspect relevant files before proposing changes; do not dump secrets from configs.
+3. Run linters in check-only mode first and run the narrowest relevant tests.
+4. When external guidance is needed, prefer version-matched official documentation.
+5. Report commands and results separately from inferred findings.
 
 ## Review Checklist
 
@@ -551,34 +525,39 @@ python -m bandit -r <directory>
 #### `AGENTS.md`
 
 ```markdown
-# Agent Instructions
+# Project Instructions
 
-你是一个知识管理助手。
-
-## 笔记整理流程
-
-1. **扫描内容**：快速浏览所有笔记
-2. **提取关键点**：识别主要概念和要点
-3. **建立结构**：组织成层级结构
-4. **生成索引**：创建标签和链接
-5. **验证完整性**：确保没有遗漏重要信息
-
-## 摘要生成原则
-
-- 保留核心观点和论据
-- 删除冗余和举例
-- 保持逻辑连贯
-- 长度不超过原文的 30%
-
-## 输出格式
-
-使用 Markdown，包含：
-- 层级标题（# ## ###）
-- 列表（- [ ]）
-- 代码块（\```）
-- 引用（>）
-- 表格（| |）
+- 原始笔记只读；整理结果写入项目指定的 derived/ 目录
+- 保留来源文件和标题，无法确认的关联标记为“待核实”
+- 修改索引前先检查现有命名与链接约定
+- 验收时报告新增、更新、跳过和失败的文件
 ```
+
+---
+
+#### `USER.md`
+
+```markdown
+# User Profile
+
+- 默认语言：中文
+- 摘要偏好：先核心观点，再证据和行动项
+- 链接格式：使用相对 Markdown 链接
+```
+
+---
+
+#### `memory/MEMORY.md` 的目标状态
+
+```markdown
+# Long-term Memory
+
+- 当前知识库以 Markdown 保存，原始笔记与派生摘要分目录管理。
+- 索引采用主题标签和相对链接，不能修改原始来源文件。
+- 项目目标是提高检索和回顾效率，而不是压缩所有细节。
+```
+
+项目结构和长期目标由 Dream 整理到 Memory；下面的摘要步骤和命令属于 Skill。
 
 ---
 
@@ -598,6 +577,14 @@ description: Summarize long notes or documents into key points. Use when the use
 # Note Summary
 
 Generate structured summaries from notes.
+
+## Workflow
+
+1. Read the complete source or explicitly report any truncation.
+2. Extract claims, evidence, decisions, and action items separately.
+3. Preserve a relative link to every source note.
+4. Write only to the configured derived output path.
+5. Validate generated links and report unresolved references.
 
 ## Summary Structure
 
@@ -644,12 +631,13 @@ grep -o "\*\*.*\*\*" <file>
 ### 迁移步骤
 
 1. **选择最接近的案例**（文件管理/代码助手/知识管理）
-2. **复制配置文件**到你的工作区
-3. **修改 SOUL.md**：定义你的 Bot 性格
-4. **修改 AGENTS.md**：定义你的工作流
-5. **修改 USER.md**：填入你的具体背景
-6. **创建或修改 Skills**：针对你的具体需求
-7. **本地验收**：按第 4 章的方法测试
+2. **确定所有权**：这是 Agent 工作区，还是 WebUI 当前项目工作区
+3. **修改 SOUL.md**：定义长期行为策略和表达风格
+4. **修改 AGENTS.md**：定义这个项目的规则与验收方式
+5. **修改 USER.md**：只填写用户身份和稳定偏好
+6. **说明长期项目事实**：让 Dream 整理进 `memory/MEMORY.md`
+7. **创建或修改 Skills**：承载可复用的领域操作流程
+8. **本地验收**：按第 4 章的方法测试
 
 ---
 
