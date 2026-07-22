@@ -1,446 +1,263 @@
 # 第 1 章：5 分钟看到效果
 
-> 目标：让 nanobot 跑起来，看到第一次正常回复。
+> 目标：安装 nanobot v0.2.2，通过向导完成最小配置，并在 CLI 或 WebUI 得到第一次正常回复。
 
-> 💡 **如果你还没做环境检查**，强烈建议先看 [第 0 章：开始之前](00-before-you-start.md)。提前 3 分钟排查环境问题，可以省掉后面 30 分钟的排错时间。
+如果环境还没检查，先读[第 0 章](00-before-you-start.md)。
 
----
+## 1.1 推荐路线：向导完成首次配置
 
-## 1.1 最快路线：一键开始（推荐首次使用）
-
-如果你只想快速看到效果，不想理解每个配置的含义，直接用交互式向导：
+### 第一步：创建隔离环境并安装固定版本
 
 ```bash
-# 第一步：创建工作目录
-mkdir nanobot-demo && cd nanobot-demo
-
-# 第二步：创建虚拟环境
+mkdir nanobot-demo
+cd nanobot-demo
 python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\activate
+python -m pip install "nanobot-ai==0.2.2"
+nanobot --version
+```
 
-# 第三步：安装
-pip install nanobot-ai
+版本输出应包含 `0.2.2`。如果终端找不到 `nanobot`，先确认虚拟环境已激活，再尝试：
 
-# 第四步：交互式初始化（会引导你完成所有配置）
+```bash
+python -m nanobot --version
+```
+
+### 第二步：运行配置向导
+
+```bash
 nanobot onboard --wizard
 ```
 
-**`--wizard` 会做什么：**
-1. ✅ 引导你选择 provider（OpenRouter / OpenAI / DeepSeek / Ollama 等）
-2. ✅ 引导你输入 API Key
-3. ✅ 引导你选择模型
-4. ✅ 自动创建配置文件和工作区
-5. ✅ 验证配置是否可用
+向导会引导你完成 Provider、模型和必要功能的选择，并创建：
 
-### ⚡ 立即验证
+| 路径 | 用途 |
+|---|---|
+| `~/.nanobot/config.json` | Provider、model preset、Channel、工具和 Gateway 配置 |
+| `~/.nanobot/workspace/` | Agent 的 Bootstrap、Memory、Session、Skill 和运行状态 |
 
-配置完成后，立即测试：
+选择需要凭据的 Provider 时，可以在输入处使用 `${PROVIDER_API_KEY}`，或在向导完成后把生成配置中的凭据替换为这个环境变量引用。不要把真实值保存在教程仓库。若你希望使用 WebUI，在向导里启用 WebSocket Channel 并设置认证信息。
+
+### 第三步：先做无模型诊断
+
+```bash
+nanobot status
+```
+
+你应该看到：
+
+- Config 和 Workspace 可用；
+- 活动 preset/模型符合预期；
+- 该 preset 对应的 Provider 已配置凭据、OAuth 状态或本地 URL。
+
+`status` 不会调用模型。它成功只能证明配置能够读取，不能证明 Provider 一定能回答。
+
+### 第四步：选择一个入口验证
+
+CLI 一次性消息：
 
 ```bash
 nanobot agent -m "你好，请用一句话介绍你自己"
 ```
 
-**预期结果：**
-```
-你好，我是 nanobot，一个基于 LLM 的 AI 助手，可以帮助你完成各种任务。
-```
-
-✅ **如果看到了正常回复** → 恭喜！你已经成功了，可以跳到 [第 2 章](02-soul.md)
-
-❌ **如果报错了** → 往下看"遇到问题了？"部分
-
----
-
-## 1.2 标准路线：手动安装（理解每一步）
-
-如果你想理解每个步骤在做什么，或者 `--wizard` 不适合你的环境，用这个路线。
-
-### 步骤 1：安装 nanobot
+或者在向导已启用 WebSocket Channel 时启动 Gateway：
 
 ```bash
-# 推荐：在虚拟环境里安装
-python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# 升级 pip（避免安装问题）
-python -m pip install -U pip
-
-# 安装 nanobot
-python -m pip install nanobot-ai
+nanobot gateway
 ```
 
-**验证安装：**
-```bash
-nanobot --version
-# 应该输出：🐈 nanobot v0.x.y
-```
+保持终端运行，浏览器打开 `http://127.0.0.1:8765`，使用向导设置的认证信息登录，再发送第一条消息。`18790` 默认是 Gateway 健康端口，不是 WebUI 页面端口。
 
-<details>
-<summary>📝 如果命令不存在，点击展开排查</summary>
+回复文案会随模型变化。只要收到正常的 assistant 回复，而不是认证、模型或网络错误，首次闭环就成功了。
 
-**症状：** `nanobot: command not found`
+## 1.2 手动路线：理解配置结构
 
-**原因：** 安装目录不在 PATH 中
-
-**解决方案：**
-1. 确认虚拟环境已激活（命令行前面应该有 `(.venv)`）
-2. 重新激活虚拟环境：`source .venv/bin/activate`
-3. 如果还不行，用完整路径运行：`.venv/bin/nanobot --version`
-
-</details>
-
-<details>
-<summary>🔧 其他安装方式</summary>
-
-**从源码安装（方便看代码）：**
-```bash
-git clone https://github.com/HKUDS/nanobot.git
-cd nanobot
-pip install -e .
-```
-
-**用 uv 安装（如果你已经装了 uv）：**
-```bash
-uv tool install nanobot-ai
-```
-
-</details>
-
----
-
-### 步骤 2：初始化工作区
+如果不使用向导，先初始化默认文件：
 
 ```bash
 nanobot onboard
 ```
 
-**这一步做了什么：**
-1. 创建配置文件：`~/.nanobot/config.json`
-2. 创建工作区：`~/.nanobot/workspace/`
-3. 从模板复制必要文件：`SOUL.md`、`AGENTS.md`、`USER.md`、`TOOLS.md`
+然后编辑 `~/.nanobot/config.json`。下面都是局部片段，请合并进现有 JSON，不要直接覆盖整份配置。
 
-**预期输出：**
-```
-✓ Created config at ~/.nanobot/config.json
-✓ Created workspace at ~/.nanobot/workspace
-
-🐈 nanobot is ready!
-
-Next steps:
-  1. Add your API key to ~/.nanobot/config.json
-  2. Chat: nanobot agent -m "Hello!"
-```
-
----
-
-### 步骤 3：配置 API Key
-
-现在需要编辑配置文件，告诉 nanobot 使用哪个 LLM。
-
-**打开配置文件：**
-```bash
-# macOS/Linux
-nano ~/.nanobot/config.json
-
-# 或用你喜欢的编辑器
-code ~/.nanobot/config.json  # VS Code
-vim ~/.nanobot/config.json   # Vim
-```
-
-**填入你的配置：**
-
-<details>
-<summary>📌 配置示例：OpenRouter（推荐第一次使用）</summary>
+### Provider 凭据与 endpoint
 
 ```json
 {
   "providers": {
-    "openrouter": {
-      "apiKey": "sk-or-v1-你的密钥"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "provider": "openrouter",
-      "model": "openai/gpt-4-turbo"
+    "custom": {
+      "apiKey": "${PROVIDER_API_KEY}",
+      "apiBase": "https://api.example.com/v1"
     }
   }
 }
 ```
 
-**为什么推荐 OpenRouter：**
-- ✅ 支持几十种模型（OpenAI、Claude、Llama 等）
-- ✅ 按用量付费，不需要订阅
-- ✅ 配置最简单，只需要一个 API Key
-- ✅ 新用户有少量免费额度
+- `custom` 适合 OpenAI-compatible endpoint；
+- 使用 nanobot 已知默认 endpoint 的托管 Provider 时，通常不需要 `apiBase`；
+- 使用本地服务、公司网关、代理或区域 endpoint 时，按服务文档填写完整 base URL；
+- 环境变量必须在启动 `agent` 或 `gateway` 的进程环境中存在。
 
-**获取 API Key：** https://openrouter.ai/keys
-
-</details>
-
-<details>
-<summary>📌 配置示例：DeepSeek（国内推荐）</summary>
+### 命名 `modelPresets`
 
 ```json
 {
-  "providers": {
-    "deepseek": {
-      "apiKey": "你的DeepSeek密钥"
+  "modelPresets": {
+    "primary": {
+      "label": "Primary",
+      "provider": "custom",
+      "model": "model-id-from-your-provider"
     }
   },
   "agents": {
     "defaults": {
-      "provider": "deepseek",
-      "model": "deepseek-chat"
+      "modelPreset": "primary"
     }
   }
 }
 ```
 
-**获取 API Key：** https://platform.deepseek.com/
+`modelPresets.primary.provider` 必须与 `providers` 中的配置键匹配，`model` 必须是该 endpoint 接受的准确模型 ID。命名 preset 是推荐方式，也为会话内模型切换和 fallback 配置提供统一入口。只有从模型文档确认后，才覆盖 `maxTokens`、`contextWindowTokens`、`temperature` 等可选字段。
 
-</details>
+!!! note "兼容方式：直接配置 provider/model"
 
-<details>
-<summary>📌 配置示例：OpenAI</summary>
+    v0.2.2 仍支持旧配置把模型直接放在 `agents.defaults`：
 
-```json
-{
-  "providers": {
-    "openai": {
-      "apiKey": "sk-你的OpenAI密钥"
+    ```json
+    {
+      "agents": {
+        "defaults": {
+          "provider": "custom",
+          "model": "model-id-from-your-provider"
+        }
+      }
     }
-  },
-  "agents": {
-    "defaults": {
-      "provider": "openai",
-      "model": "gpt-4-turbo"
-    }
-  }
-}
-```
+    ```
 
-**获取 API Key：** https://platform.openai.com/api-keys
+    这会形成隐式的 `default` preset，适合迁移旧配置；新配置优先使用命名 `modelPresets`。
 
-</details>
-
-<details>
-<summary>📌 配置示例：Ollama（本地模型，免费）</summary>
-
-```json
-{
-  "providers": {
-    "ollama": {
-      "apiBase": "http://localhost:11434"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "provider": "ollama",
-      "model": "llama3"
-    }
-  }
-}
-```
-
-**前提：** 你需要先安装并运行 Ollama
-```bash
-# 安装 Ollama（参考 https://ollama.ai）
-# 下载模型
-ollama pull llama3
-# 启动 Ollama 服务（会在后台运行）
-ollama serve
-```
-
-</details>
-
----
-
-### 步骤 4：第一次对话
-
-配置完成后，立即测试：
+### 检查 JSON 与 nanobot 状态
 
 ```bash
-nanobot agent -m "你好，请用一句话介绍你自己"
+jq empty ~/.nanobot/config.json
+nanobot status
+nanobot agent -m "只回复：配置已连通"
 ```
 
-**预期结果：**
-```
-你好，我是 nanobot，一个基于 LLM 的 AI 助手，可以帮助你完成各种任务。
-```
+如果没有 `jq`，可用 Python 只检查 JSON 语法：
 
-或者进入交互模式（推荐）：
 ```bash
-nanobot agent
+python -m json.tool ~/.nanobot/config.json > /dev/null
 ```
 
-交互模式下：
-- 直接输入消息按回车发送
-- 输入 `exit` 或按 `Ctrl+C` 退出
+## 1.3 什么时候用 CLI，什么时候用 WebUI
 
----
+| 入口 | 启动方式 | 最适合 |
+|---|---|---|
+| 单次 CLI | `nanobot agent -m "..."` | 安装和 Provider 的最小冒烟 |
+| 交互 CLI | `nanobot agent` | 终端连续对话与诊断 |
+| WebUI | `nanobot gateway`，浏览器访问 `127.0.0.1:8765` | 多聊天、项目工作区和可视化配置 |
 
-## 1.3 遇到问题了？快速诊断
+交互 CLI 使用 `exit`、`/exit`、`:q` 或 `Ctrl+D` 退出。前台 Gateway 使用 `Ctrl+C` 停止；后台服务流程会在部署章节说明。
 
-如果第一次对话没有成功，用这个决策树快速定位问题：
+## 1.4 快速诊断
 
 ```mermaid
 flowchart TD
-    start[运行 nanobot agent 出错] --> check1{命令是否存在？}
-    check1 -- 否 --> fix1[检查虚拟环境是否激活<br/>重新运行 source .venv/bin/activate]
-    check1 -- 是 --> check2{返回什么错误？}
-    
-    check2 -- 401/Unauthorized --> fix2[API Key 无效<br/>1. 检查是否复制完整<br/>2. 检查是否过期<br/>3. 检查 provider 是否匹配]
-    check2 -- 模型不存在 --> fix3[模型名称错误<br/>去 provider 控制台确认<br/>可用的模型名称]
-    check2 -- 连接超时 --> fix4[网络问题<br/>1. 检查是否能访问该 API<br/>2. 尝试配置代理<br/>3. 考虑换国内 provider]
-    check2 -- 其他错误 --> fix5[查看完整错误日志<br/>nanobot agent -m 'test' -v]
-    
-    fix1 --> verify[再次测试]
-    fix2 --> verify
-    fix3 --> verify
-    fix4 --> verify
-    fix5 --> verify
+    start[首次消息失败] --> installed{nanobot --version 成功?}
+    installed -- 否 --> path[激活虚拟环境<br/>或使用 python -m nanobot]
+    installed -- 是 --> status{nanobot status 正常?}
+    status -- 否 --> config[检查 JSON、preset、Provider 和环境变量]
+    status -- 是 --> request{请求错误类型}
+    request -- 401/403 --> auth[检查凭据名称、权限和进程环境]
+    request -- Model not found --> model[核对 endpoint 接受的完整模型 ID]
+    request -- Timeout/connection --> network[核对 apiBase、服务状态和网络]
+    request -- 其他 --> logs[用交互 CLI 的 --logs 复现]
 ```
 
-### 常见错误速查表
+### 常见症状
 
-| 症状 | 原因 | 解决方案 |
-|------|------|---------|
-| `nanobot: command not found` | PATH 问题 | 重新激活虚拟环境 |
-| `401 Unauthorized` | API Key 无效 | 检查 config.json 中的 apiKey |
-| `Model not found` | 模型名称错误 | 去 provider 文档确认正确的模型名 |
-| `Connection timeout` | 网络问题 | 检查网络或换 provider |
-| `No module named 'nanobot'` | 安装失败 | 重新运行 `pip install nanobot-ai` |
+| 症状 | 优先检查 |
+|---|---|
+| `nanobot: command not found` | 虚拟环境、PATH，或 `python -m nanobot` |
+| `401` / `403` | 环境变量是否传给当前进程、Key 权限、Provider 是否匹配 |
+| `Model not found` | preset 中的模型 ID 与 endpoint 是否一致 |
+| `Connection timeout` | `apiBase`、本地服务进程、DNS/代理与防火墙 |
+| `modelPreset ... not found` | `agents.defaults.modelPreset` 是否对应 `modelPresets` 的键 |
 
-### 深度排查
+### 查看 Agent 运行日志
 
-如果上面的快速方案都不行，用详细日志模式运行：
+v0.2.2 的交互式 Agent 使用 `--logs`：
 
 ```bash
-# 启用详细日志
-nanobot agent -m "test" --verbose
-
-# 或者设置环境变量
-export NANOBOT_LOG_LEVEL=DEBUG
-nanobot agent -m "test"
+nanobot agent --logs
 ```
 
-然后将完整的错误日志粘贴到 [GitHub Issues](https://github.com/HKUDS/nanobot/issues)。
+在交互会话里复现失败，并只分享已经脱敏的相关日志。不要照搬旧教程中的 Agent 详细日志参数或未定义的日志级别环境变量。
 
----
+配置层也可以运行仓库脚本：
 
-## 1.4 成功的标准
+```bash
+bash scripts/verify-config.sh
+```
 
-完成这一章后，你应该能确认以下 3 点：
+脚本不会打印 API Key。提交 Issue 前仍要人工检查日志中的私有 URL、用户名、文件路径和会话内容。
 
-- [x] `nanobot --version` 能输出版本号
-- [x] `~/.nanobot/config.json` 已存在且 API Key 已配置
-- [x] `nanobot agent -m "你好"` 能返回正常回复（不是错误信息）
+## 1.5 成功标准
 
-**只要这 3 点都成立，你就成功了！** 现在可以继续下一章。
+- [ ] `nanobot --version` 显示 v0.2.2
+- [ ] `nanobot status` 显示预期的配置、工作区和活动 preset/模型
+- [ ] CLI 或 WebUI 至少一个入口得到正常回复
+- [ ] `config.json` 中没有明文密钥，只有 `${ENV_NAME}` 引用
+- [ ] 知道 WebUI 端口与 Gateway 健康端口不是同一个端口
 
----
+只要前三项成立，你已经完成最小可用闭环。
 
-## 1.5 理解原理（可选展开）
-
-<details>
-<summary>🧠 点击展开：nanobot 是怎么跑起来的？</summary>
-
-当你执行 `nanobot agent` 时，背后发生了什么？
+## 1.6 原理速览
 
 ```mermaid
 flowchart LR
-    config[config.json] --> provider[Provider]
-    provider --> llm[LLM API]
-    user[用户输入] --> loop[AgentLoop]
-    loop --> provider
-    llm --> loop
-    loop --> response[回复]
+    input[CLI / WebUI 消息] --> loop[AgentLoop 编排]
+    config[config + preset] --> loop
+    workspace[Agent / 项目工作区] --> loop
+    loop --> provider[Provider]
+    provider --> model[LLM endpoint]
+    model --> loop
+    loop --> output[回复 + Session]
 ```
 
-### 三个核心组件
+- Config 决定 Provider、模型、Channel 和工具能力；
+- Agent 工作区保存 Bootstrap、Memory、Session 和 Skill；
+- AgentLoop 负责会话与完整消息编排；
+- Provider 处理特定模型服务的协议差异。
 
-**1. Config（配置）**
-- 存储 API Key、模型名称、工作区路径等
-- 位置：`~/.nanobot/config.json`
+默认 Agent 工作区的核心结构：
 
-**2. Provider（提供商适配器）**
-- 负责和不同 LLM API 通信
-- 屏蔽 OpenAI、Claude、DeepSeek 等不同接口的差异
-- 源码：`nanobot/providers/`
-
-**3. AgentLoop（核心引擎）**
-- 管理对话历史（messages）
-- 处理工具调用（下一章会讲）
-- 组装 System Prompt（第 2 章会讲）
-- 源码：`nanobot/agent/loop.py`
-
-### 一次对话的完整流程
-
-```
-1. 你输入："今天天气怎么样？"
-   ↓
-2. AgentLoop 组装 messages：
-   [
-     {role: "system", content: "你是 nanobot..."},
-     {role: "user", content: "今天天气怎么样？"}
-   ]
-   ↓
-3. Provider 发送给 LLM API
-   ↓
-4. LLM 返回回复
-   ↓
-5. AgentLoop 把回复追加到 messages
-   ↓
-6. 打印回复给你
-```
-
-**关键设计：** messages 是有状态的列表，每次对话都带上完整历史，所以 Bot 能"记住"你之前说了什么。
-
-</details>
-
-<details>
-<summary>🗂️ 点击展开：工作区文件结构</summary>
-
-初始化后，工作区 `~/.nanobot/workspace/` 的结构：
-
-```
-workspace/
-├── AGENTS.md     ← Bot 的行为规则
-├── SOUL.md       ← Bot 的人格
-├── USER.md       ← 用户画像
-├── TOOLS.md      ← 工具使用说明
+```text
+~/.nanobot/workspace/
+├── AGENTS.md
+├── SOUL.md
+├── USER.md
 ├── memory/
-│   ├── MEMORY.md ← 长期记忆
-│   └── history.jsonl ← 历史摘要归档
-└── skills/       ← 自定义技能目录
+│   ├── MEMORY.md
+│   └── history.jsonl
+├── sessions/
+└── skills/
 ```
 
-这些文件会在每次对话时被读取并注入到 System Prompt 中。**修改它们就能改变 Bot 的行为——不需要写代码。**
+三个 Bootstrap 文件会进入 System Prompt；Memory、Skills、Session 和 Runtime Context 有各自的注入规则，下一章会详细拆开。
 
-下一章会详细讲解如何定制这些文件。
+## 1.7 第一次先不要做什么
 
-</details>
-
----
-
-## 1.6 这一章先不要做的事
-
-为了提高成功率，第一次跟做时先不要：
-
-- ❌ 同时尝试三种安装方式
-- ❌ 一边改 provider，一边改模型，一边改工作区路径
-- ❌ 一上来就接 Telegram 或 Docker
-- ❌ 还没跑通 CLI 就开始写 Skill
-
-**先把 CLI 的第一次回复拿到手，后面每一章都会轻松很多。**
-
----
+- 不要同时切换安装方式、Provider、模型和工作区；
+- 不要用局部示例覆盖整个 `config.json`；
+- 不要在 CLI 未通过时同时调试 Telegram、Docker 或 systemd；
+- 不要把真实凭据贴进命令历史、Markdown 或 Issue。
 
 ## 下一步
 
-✅ **如果你已经看到正常回复** → 继续 [第 2 章：用 Markdown 定义 Bot](02-soul.md)
+✅ 已看到正常回复 → [第 2 章：让 Bot 有个性](02-soul.md)
 
-❌ **如果还是卡住了** → 去 [附录：常见坑与排障](../appendix/troubleshooting.md) 查看详细解决方案
+❌ 仍然失败 → [附录：常见坑与排障](../appendix/troubleshooting.md)
 
-🤔 **如果想理解更深层的原理** → 去 [进阶营第 1 章：最简 Agent](../hero/01-simplest-agent.md) 看 40 行代码如何实现对话
+🤔 想先看模型请求的最小实现 → [进阶营第 1 章：最简 Agent](../hero/01-simplest-agent.md)
