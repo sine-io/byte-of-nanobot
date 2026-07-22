@@ -99,6 +99,6 @@ which python3
 
 ## 7. 通过后从哪里开始
 
-- 如果你要先跑通 CLI：回到 [第 1 章：5 分钟跑起来](01-quick-start.md)
-- 如果你已经能在 CLI 正常对话：继续 [第 2 章：用 Markdown 定义 Bot](02-soul.md) 和 [第 3 章：教 Bot 新技能](03-skills.md)
-- 如果你已经完成本地闭环，准备接平台：再读 [第 4 章：先部署到 Telegram](04-deploy.md)
+- 如果你要先跑通 CLI：回到 [第 1 章：5 分钟跑起来](../zero/01-quick-start.md)
+- 如果你已经能在 CLI 正常对话：继续 [第 2 章：用 Markdown 定义 Bot](../zero/02-soul.md) 和 [第 3 章：教 Bot 新技能](../zero/03-skills.md)
+- 如果你已经完成本地闭环，准备接平台：再读 [第 4 章：先部署到 Telegram](../zero/05-deploy-telegram.md)

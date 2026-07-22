@@ -118,9 +118,9 @@ bash scripts/check-skill.sh <skill-name>
 
 ## 🔗 相关文档
 
-- [第 0 章：开始之前](../00-before-you-start.md) - 环境准备
-- [第 1 章：5 分钟跑起来](../01-quick-start.md) - 快速开始
-- [附录：统一排障手册](../appendix-troubleshooting-guide.md) - 系统化排障
+- [第 0 章：开始之前](../zero/00-before-you-start.md) - 环境准备
+- [第 1 章：5 分钟跑起来](../zero/01-quick-start.md) - 快速开始
+- [附录：统一排障手册](../appendix/troubleshooting-guide.md) - 系统化排障
 
 ---
 

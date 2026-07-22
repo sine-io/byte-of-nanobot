@@ -70,9 +70,9 @@ flowchart LR
 **推荐路径：**
 ```mermaid
 flowchart LR
-    A[新手村<br/>1-5章] --> B[build/第1章<br/>最简Agent]
-    B --> C[build/第2章<br/>工具系统]
-    C --> D[build/第3-5章<br/>完整架构]
+    A[新手村<br/>1-5章] --> B[进阶营/第1章<br/>最简Agent]
+    B --> C[进阶营/第2章<br/>工具系统]
+    C --> D[进阶营/第3-5章<br/>完整架构]
 ```
 
 **预计时间：** 1-2 天
@@ -89,9 +89,9 @@ flowchart LR
 **推荐路径：**
 ```mermaid
 flowchart LR
-    A[build/<br/>进阶营导读] --> B[build/第1章<br/>40行代码]
-    B --> C[build/第2-5章<br/>逐步演进]
-    C --> D[build/第6章<br/>工程化差距]
+    A[进阶营/<br/>进阶营导读] --> B[进阶营/第1章<br/>40行代码]
+    B --> C[进阶营/第2-5章<br/>逐步演进]
+    C --> D[进阶营/第6章<br/>工程化差距]
 ```
 
 **预计时间：** 3-5 天
@@ -190,7 +190,7 @@ Python 3.11
 ✓ 基础环境检查完成
 ```
 
-如果某个命令报错，记下是哪一项，然后查看 [附录：环境预检](appendix-environment-precheck.md) 的对应部分。
+如果某个命令报错，记下是哪一项，然后查看 [附录：环境预检](../appendix/environment-precheck.md) 的对应部分。
 
 ## 0.5 API Key 准备清单
 
@@ -289,12 +289,12 @@ Python 3.11
 
 👉 **类型 A 用户**：直接去 [第 1 章：5 分钟跑起来](01-quick-start.md)
 
-👉 **类型 B 用户**：先读 [第 1-3 章](01-quick-start.md)，再去 [进阶营](build/README.md)
+👉 **类型 B 用户**：先读 [第 1-3 章](01-quick-start.md)，再去 [进阶营](../hero/README.md)
 
-👉 **类型 C 用户**：直接去 [进阶营导读](build/README.md)
+👉 **类型 C 用户**：直接去 [进阶营导读](../hero/README.md)
 
 ---
 
 **如果你还有疑问：**
-- 不确定环境是否准备好 → 先看 [附录：环境预检](appendix-environment-precheck.md)
+- 不确定环境是否准备好 → 先看 [附录：环境预检](../appendix/environment-precheck.md)
 - 不确定该走哪条路线 → 先走类型 A 的路线，做完第 1-3 章再决定

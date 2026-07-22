@@ -441,6 +441,6 @@ workspace/
 
 ✅ **如果你已经看到正常回复** → 继续 [第 2 章：用 Markdown 定义 Bot](02-soul.md)
 
-❌ **如果还是卡住了** → 去 [附录：常见坑与排障](appendix-troubleshooting.md) 查看详细解决方案
+❌ **如果还是卡住了** → 去 [附录：常见坑与排障](../appendix/troubleshooting.md) 查看详细解决方案
 
-🤔 **如果想理解更深层的原理** → 去 [进阶营第 1 章：最简 Agent](build/01-simplest-agent.md) 看 40 行代码如何实现对话
+🤔 **如果想理解更深层的原理** → 去 [进阶营第 1 章：最简 Agent](../hero/01-simplest-agent.md) 看 40 行代码如何实现对话

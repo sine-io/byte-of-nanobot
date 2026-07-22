@@ -759,6 +759,6 @@ if __name__ == "__main__":
 
 ✅ **如果 Skill 成功触发** → 继续 [第 4 章：本地完整验收](04-local-integration.md)
 
-❌ **如果还是没触发** → 去 [附录：常见坑与排障](appendix-troubleshooting.md) 查看 Skill 排障专题
+❌ **如果还是没触发** → 去 [附录：常见坑与排障](../appendix/troubleshooting.md) 查看 Skill 排障专题
 
-🤔 **如果想理解更深层原理** → 去 [进阶营第 5 章：技能与扩展](build/05-skills-and-beyond.md)
+🤔 **如果想理解更深层原理** → 去 [进阶营第 5 章：技能与扩展](../hero/05-skills-and-beyond.md)
