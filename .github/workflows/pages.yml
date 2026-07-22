@@ -35,6 +35,9 @@ jobs:
       - name: Check Python examples
         run: python -m compileall -q docs/zh-cn/examples/hero
 
+      - name: Run offline Hero tests
+        run: python -m unittest discover -s tests -v
+
       - name: Check shell scripts
         run: bash -n scripts/*.sh
 
