@@ -19,14 +19,16 @@ nanobot agent -m "北京今天天气怎么样？"
 ```
 用户：北京今天天气怎么样？
   ↓
-Bot：让我查一下天气...
+Bot：判断 weather Skill 可能有用
   ↓
-[终端显示] 🔧 Tool: read_file(path="~/.nanobot/skills/weather/SKILL.md")
+[终端显示] 🔧 Tool: read_file(path="<skills 摘要列出的路径>")
   ↓
-[终端显示] 🔧 Tool: exec(command="curl -s 'wttr.in/Beijing?format=3'")
+[终端显示] 🔧 Tool: exec(command="<Skill 指定的查询命令>")
   ↓
-Bot：北京今天多云，温度 15°C，空气质量良好。
+Bot：转述本次查询实际返回的天气和数据时间。
 ```
+
+这只是流程示意。是否读取 Skill、具体工具参数和天气值都由当前模型、Skill 内容与实时响应共同决定，不能把示例输出当成固定结果。
 
 ### 🎯 三个关键观察点
 
@@ -37,9 +39,9 @@ flowchart LR
     C --> D[返回结果]
 ```
 
-**这就是 Skill 的核心流程：**
-1. **识别场景** → Bot 从 skills 摘要中发现"有个 weather skill 可以查天气"
-2. **按需学习** → Bot 读取完整的 `SKILL.md`，学习具体怎么做
+**这就是普通按需 Skill 的核心流程：**
+1. **模型选择** → Bot 从 skills 摘要中判断 `weather` 是否与当前请求有关
+2. **按需学习** → Bot 决定读取完整的 `SKILL.md`，学习具体怎么做
 3. **执行行动** → Bot 按照 Skill 中的指示调用工具
 
 ---
@@ -68,45 +70,54 @@ skills/
 
 ---
 
-## 3.3 Skill 的触发机制（重要！）
+## 3.3 Skill 的选择与加载机制（重要！）
 
 这是理解 Skill 系统的关键。
 
-### 渐进式加载
+### 从发现到执行的生命周期
 
-**Agent 不会一次性读取所有 Skill 的完整内容**——那样会占满上下文窗口。它用的是**渐进式加载**：
+大多数 Skill 不会一开始就把全文塞进上下文。nanobot 先扫描配置的 Agent 工作区和内置目录，再按覆盖、禁用、依赖与 `always` 状态决定如何展示：
 
 ```mermaid
 flowchart TD
-    start[用户提问] --> layer1[第1层：始终加载<br/>所有Skill的name+description]
-    layer1 --> match{匹配到相关Skill？}
-    match -- 否 --> direct[不加载Skill正文<br/>按常规流程回答]
-    match -- 是 --> layer2[第2层：按需加载<br/>读取匹配Skill的SKILL.md]
-    layer2 --> need{需要额外资源？}
-    need -- 否 --> answer[执行步骤并回复]
-    need -- 是 --> layer3[第3层：按需加载<br/>scripts/, references/等资源]
-    layer3 --> answer
+    scan[扫描 Agent 工作区与内置 Skills] --> override[工作区同名目录覆盖内置目录]
+    override --> disabled{名称在 disabledSkills 中？}
+    disabled -- 是 --> hidden[不进入摘要或 Active Skills]
+    disabled -- 否 --> requirements[检查 bins / env 依赖]
+    requirements --> always{always 且依赖满足？}
+    always -- 是 --> active[完整正文进入 Active Skills]
+    always -- 否 --> summary[名称、描述、位置与可用状态进入摘要]
+    summary --> choose{模型判断当前请求是否需要它？}
+    choose -- 否 --> direct[按常规流程回答]
+    choose -- 是 --> load[模型调用 read_file 读取 SKILL.md]
+    load --> resources[按需读取 scripts / references / assets]
+    resources --> answer[调用允许的工具并回复]
 ```
 
-### 三层加载详解
+### 各阶段加载什么
 
-| 层级 | 内容 | 何时加载 | 成本 |
-|------|------|---------|------|
-| 第 1 层 | 所有 Skill 的 `name` + `description` | 每次对话都加载 | ~1000 tokens |
-| 第 2 层 | 被触发的 Skill 的 `SKILL.md` 正文 | 只有匹配时才加载 | ~500-2000 tokens |
-| 第 3 层 | Skill 附带的 `scripts/`、`references/` | 只有需要时才加载 | 视具体文件而定 |
+| 阶段 | 内容 | 进入上下文的条件 | 成本取决于 |
+|------|------|------------------|------------|
+| 摘要 | 非禁用 Skill 的目录名、`description`、位置和可用状态 | 普通 Skill；依赖缺失时会标为 `unavailable` | Skill 数量、描述和路径长度 |
+| Active Skills | 去掉 frontmatter 后的完整 `SKILL.md` | `always` 为真、未禁用且依赖满足 | 正文实际长度 |
+| 按需正文 | 模型通过 `read_file` 读取的普通 `SKILL.md` | 模型认为当前请求需要它 | 被读取文件的实际长度 |
+| 附加资源 | `scripts/`、`references/`、`assets/` | Skill 指示且模型确实需要 | 实际读取或执行的内容 |
+
+这里没有代码级的关键词匹配器。`description` 是放进 Prompt 的选择线索，最终是否读取正文由当前模型结合用户请求判断，因此“触发”不是确定性事件。
 
 ### 为什么这么设计？
 
-**问题：** 如果把 100 个 Skill 的完整内容全塞进 System Prompt，会发生什么？
+**问题：** 如果把大量 Skill 的完整内容全塞进 System Prompt，会发生什么？
 - 光 Skills 就占了几万个 token
 - 留给对话历史的空间所剩无几
 - 响应速度变慢，成本增加
 
 **解决方案：** 渐进式加载
-- 100 个 Skill 只占约 1000 个 token（只有名字和描述）
-- 每次对话最多加载 1-2 个相关 Skill 的完整内容
-- 用户感知不到任何延迟
+- 普通 Skill 先只提供摘要，正文按需读取
+- `always` 只留给确实必须随每轮提供的短指令
+- 依赖缺失会显式标注，不伪装成可执行能力
+
+不要给 Skill 数量套固定 token 公式：模型 tokenizer、描述长度、绝对路径、frontmatter 和实际读取的资源都会改变占用。
 
 ---
 
@@ -114,9 +125,9 @@ flowchart TD
 
 现在轮到你了。我们分三个难度等级来创建 Skill。
 
-### Level 1：最简 Skill（验证触发机制）
+### Level 1：最简 Skill（验证发现与选择）
 
-先创建一个超简单的 Skill，目标是**验证触发机制**，而不是做复杂功能。
+先创建一个超简单的 Skill，目标是验证“摘要可见 → 模型选择 → 读取正文”，而不是做复杂功能。
 
 **步骤 1：创建文件**
 
@@ -150,7 +161,7 @@ nanobot agent -m "请用 hello skill 向我打招呼"
 🎉 Hello from your custom skill! This is proof that Skill loading works!
 ```
 
-✅ **如果成功了** → 你已经掌握了 Skill 的基本触发机制！
+✅ **如果成功了** → 你已经走通了 Skill 的基本发现与按需加载流程！
 
 ❌ **如果没有触发** → 往下看"Skill 没触发？诊断树"
 
@@ -158,7 +169,7 @@ nanobot agent -m "请用 hello skill 向我打招呼"
 
 ### Level 2：真正有用的 Skill（集成工具调用）
 
-现在做一个真正有用的 Skill：查询实时汇率。
+现在做一个查询“数据源最近一次发布汇率”的 Skill。汇率和覆盖币种会变化，所以示例不写死结果。
 
 **步骤 1：创建目录**
 
@@ -171,46 +182,78 @@ mkdir -p ~/.nanobot/workspace/skills/exchange-rate
 ```markdown
 ---
 name: exchange-rate
-description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
+description: Query the latest published exchange rate between ISO currency codes and convert an amount. Use for currency conversion or exchange-rate questions that require a cited, current data source.
+metadata: {"nanobot":{"requires":{"bins":["curl","python3"]}}}
 ---
 
 # Exchange Rate
 
-Use the free ExchangeRate API (no key required).
+Use the public ExchangeRate-API endpoint. Treat it as an external, fallible data source.
 
-## Query current rate
-
-\```bash
-# Get rates from USD to other currencies
-curl -s "https://open.er-api.com/v6/latest/USD" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-rates = data['rates']
-print(f\"1 USD = {rates['CNY']} CNY\")
-print(f\"1 USD = {rates['EUR']} EUR\")
-print(f\"1 USD = {rates['JPY']} JPY\")
-"
-\```
-
-## Convert amount
-
-To convert a specific amount, replace $FROM, $TO, $AMOUNT:
+## Convert an amount
 
 \```bash
-curl -s "https://open.er-api.com/v6/latest/USD" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-rate = data['rates']['CNY']
-amount = 1000
-print(f'{amount} USD = {amount * rate:.2f} CNY (rate: {rate})')
-"
+# Replace only after validating the user's request. Never splice raw user text
+# into a URL or shell fragment.
+FROM="USD"
+TO="CNY"
+AMOUNT="1000"
+
+case "$FROM" in [A-Z][A-Z][A-Z]) ;; *) echo "Error: invalid source currency" >&2; exit 2 ;; esac
+case "$TO" in [A-Z][A-Z][A-Z]) ;; *) echo "Error: invalid target currency" >&2; exit 2 ;; esac
+
+RESPONSE_FILE="$(mktemp)"
+trap 'rm -f "$RESPONSE_FILE"' EXIT
+
+if ! curl --fail --silent --show-error --location \
+  --connect-timeout 5 --max-time 15 \
+  --output "$RESPONSE_FILE" \
+  "https://open.er-api.com/v6/latest/${FROM}"; then
+  echo "Error: exchange-rate request failed" >&2
+  exit 1
+fi
+
+python3 - "$RESPONSE_FILE" "$FROM" "$TO" "$AMOUNT" <<'PY'
+from decimal import Decimal, InvalidOperation
+import json
+import sys
+
+path, source, target, amount_text = sys.argv[1:]
+
+try:
+    with open(path, encoding="utf-8") as stream:
+        data = json.load(stream)
+    if data.get("result") != "success":
+        raise ValueError(data.get("error-type", "API returned failure"))
+    rates = data.get("rates")
+    if not isinstance(rates, dict) or target not in rates:
+        raise ValueError(f"unsupported target currency: {target}")
+    amount = Decimal(amount_text)
+    rate = Decimal(str(rates[target]))
+    if not amount.is_finite() or amount < 0:
+        raise ValueError("amount must be a finite, non-negative number")
+    if not rate.is_finite() or rate <= 0:
+        raise ValueError("API returned an invalid rate")
+except (OSError, json.JSONDecodeError, InvalidOperation, TypeError, ValueError) as exc:
+    print(f"Error: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+print(f"{amount:f} {source} = {amount * rate:.2f} {target}")
+print(f"Rate returned: 1 {source} = {rate} {target}")
+print(f"Published at: {data.get('time_last_update_utc', 'not supplied')}")
+print(f"Currencies in this response: {len(rates)}")
+print("Data source: ExchangeRate-API")
+PY
 \```
 
-## Supported currencies
+## Rules
 
-Common: USD, CNY, EUR, GBP, JPY, KRW, HKD, TWD, SGD, AUD, CAD
-
-Full list: https://open.er-api.com/v6/latest/USD
+- Accept only three-letter currency codes and normalize them to uppercase before composing the command.
+- Reject missing, non-numeric, non-finite, or negative amounts.
+- If curl, JSON parsing, API status, or currency lookup fails, report the failure; never invent a rate.
+- Report the source and the update timestamp returned by this response.
+- Derive the available-currency count from `len(rates)`; do not hard-code a total.
+- Exchange-rate output is informational, not financial advice.
 ```
 
 **步骤 3：测试**
@@ -223,93 +266,26 @@ nanobot agent -m "1000 美元等于多少人民币？"
 ```
 让我查询最新汇率...
 [工具调用过程]
-根据当前汇率，1000 美元约等于 7,234 人民币（数据来源：ExchangeRate-API，查询时间：2026-06-15）
+根据数据源本次返回的汇率，给出换算结果、数据更新时间和来源；具体数值随响应变化。
 ```
 
 ---
 
-### Level 3：生产可用的 Skill（添加错误处理）
+### Level 3：更稳健的教学版（补齐边界）
 
 <details>
-<summary>点击展开：添加错误处理和边界情况</summary>
+<summary>点击展开：为什么这仍然不是“生产可用”</summary>
 
-完整的生产级 Skill 应该考虑：
-- ✅ 网络请求失败
-- ✅ 不支持的货币代码
-- ✅ API 返回格式变化
-- ✅ 数据源说明和时效性提示
+Level 2 已经加入依赖声明、输入校验、连接/总超时、HTTP 失败、JSON/API 状态检查和临时文件清理，适合作为**更稳健的教学版**。真实生产服务还需要结合自己的风险模型补齐：
 
-```markdown
----
-name: exchange-rate
-description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
-metadata: {"nanobot":{"requires":{"bins":["curl","python3"]}}}
----
+- 对第三方服务的条款、限流、可用性和数据许可证做审查
+- 用确定性脚本或 Tool 接收结构化参数，避免模型拼接 Shell
+- 对网络出口、代理、DNS 与 SSRF 做硬隔离
+- 设计缓存、重试退避、监控和备用数据源
+- 为成功、超时、错误 JSON、未知币种与异常金额写离线测试
+- 对金融场景增加精度、舍入、时区和合规规则
 
-# Exchange Rate
-
-Use the free ExchangeRate API (no key required).
-
-## Query current rate
-
-\```bash
-# Get rates with error handling
-curl -s "https://open.er-api.com/v6/latest/USD" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    if data.get('result') != 'success':
-        print('Error: API returned failure')
-        sys.exit(1)
-    rates = data['rates']
-    print(f\"1 USD = {rates['CNY']:.2f} CNY\")
-    print(f\"1 USD = {rates['EUR']:.4f} EUR\")
-    print(f\"1 USD = {rates['JPY']:.2f} JPY\")
-    print(f\"Data source: ExchangeRate-API\")
-    print(f\"Last updated: {data.get('time_last_update_utc', 'unknown')}\")
-except json.JSONDecodeError:
-    print('Error: Invalid JSON response')
-    sys.exit(1)
-except KeyError as e:
-    print(f'Error: Currency not found: {e}')
-    sys.exit(1)
-"
-\```
-
-## Convert amount
-
-\```bash
-# Example: convert 1000 USD to CNY
-FROM="USD"
-TO="CNY"
-AMOUNT=1000
-
-curl -s "https://open.er-api.com/v6/latest/$FROM" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    if data.get('result') != 'success':
-        print('Error: API returned failure')
-        sys.exit(1)
-    rate = data['rates']['$TO']
-    amount = $AMOUNT
-    result = amount * rate
-    print(f'{amount} $FROM = {result:.2f} $TO')
-    print(f'Exchange rate: 1 $FROM = {rate:.4f} $TO')
-    print(f'Data source: ExchangeRate-API')
-except (json.JSONDecodeError, KeyError) as e:
-    print(f'Error: {e}')
-    sys.exit(1)
-"
-\```
-
-## Notes
-
-- Data updates every 24 hours
-- Free tier has no authentication
-- For production use, consider caching results
-- Supported currencies: 161 total (see API docs)
-```
+因此教程不承诺固定更新频率、固定币种总数或固定换算值。CI 也不访问这个公共端点；真实查询只作为可选人工冒烟测试。
 
 </details>
 
@@ -324,25 +300,29 @@ flowchart TD
     start[Skill 没触发] --> q1{文件在正确位置？}
     q1 -- 否 --> fix1[检查路径<br/>应该是 ~/.nanobot/workspace/skills/skill-name/SKILL.md]
     q1 -- 是 --> q2{frontmatter 正确？}
-    
+
     q2 -- 否 --> fix2[检查 frontmatter<br/>至少要有 name 和 description]
-    q2 -- 是 --> q3{依赖命令存在？}
-    
-    q3 -- 否 --> fix3[安装依赖<br/>如 curl, python3, gh 等]
-    q3 -- 是 --> q4{description 足够清晰？}
-    
-    q4 -- 否 --> fix4[改进 description<br/>说明"做什么"和"什么时候用"]
-    q4 -- 是 --> q5{提问方式明确？}
-    
-    q5 -- 否 --> fix5[用更明确的问法<br/>如"请用 XXX skill 完成..."]
-    q5 -- 是 --> fix6[可能是模型问题<br/>换个模型或调整 temperature]
-    
+    q2 -- 是 --> q3{在 disabledSkills 中？}
+
+    q3 -- 是 --> fix3[确认是否应重新启用]
+    q3 -- 否 --> q4{bins / env 依赖满足？}
+
+    q4 -- 否 --> fix4[补齐依赖<br/>不要把 unavailable 当成可执行]
+    q4 -- 是 --> q5{description 清楚说明用途？}
+
+    q5 -- 否 --> fix5[改进 description<br/>说明做什么和什么时候用]
+    q5 -- 是 --> q6{模型是否选择读取正文？}
+
+    q6 -- 否 --> fix6[用明确请求做对照<br/>检查工具提示与模型差异]
+    q6 -- 是 --> action[继续排查 Skill 内的命令或数据]
+
     fix1 --> verify[重新测试]
     fix2 --> verify
     fix3 --> verify
     fix4 --> verify
     fix5 --> verify
     fix6 --> verify
+    action --> verify
 ```
 
 ### 诊断步骤详解
@@ -373,7 +353,7 @@ head -n 5 ~/.nanobot/workspace/skills/exchange-rate/SKILL.md
 ```yaml
 ---
 name: exchange-rate
-description: Query real-time exchange rates...
+description: Query the latest published exchange rate and convert an amount...
 ---
 ```
 
@@ -384,13 +364,24 @@ description: Query real-time exchange rates...
 
 ---
 
-#### 问题 3：依赖命令存在吗？
+#### 问题 3：Skill 被禁用了吗？
+
+`agents.defaults.disabledSkills` 按**目录名**同时排除内置和工作区 Skill。先用 WebUI 查看 Agent 默认配置；手工检查时只确认名称，不要打印包含凭据的完整配置。
+
+禁用是“不要向模型展示/加载这个 Skill”，不是文件权限或工具沙箱。即使禁用了 Skill，底层 Tool 是否能访问网络或执行命令仍由工具配置和系统隔离决定。
+
+---
+
+#### 问题 4：依赖命令和环境变量存在吗？
 
 **检查命令：**
 ```bash
-which curl
-which python3
+command -v curl
+command -v python3
+test -n "${REQUIRED_ENV_NAME:-}" && echo "依赖变量已设置" || echo "依赖变量未设置"
 ```
+
+`requires.bins` 使用当前进程可找到的命令，`requires.env` 只检查环境变量是否有值。缺失时，普通 Skill 仍会出现在摘要里但标为 `unavailable`；缺失依赖的 `always` Skill 也不会完整注入。不要回显环境变量的值。
 
 **如果缺少：**
 ```bash
@@ -406,7 +397,7 @@ brew install curl python3
 
 ---
 
-#### 问题 4：description 足够清晰吗？
+#### 问题 5：description 足够清晰吗？
 
 **❌ 坏示例：**
 ```yaml
@@ -415,7 +406,7 @@ description: Exchange rate tool
 
 **✅ 好示例：**
 ```yaml
-description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
+description: Query the latest published exchange rate and convert an amount. Use when the user needs a cited current data source.
 ```
 
 **改进原则：**
@@ -425,19 +416,19 @@ description: Query real-time exchange rates between currencies. Use when the use
 
 ---
 
-#### 问题 5：提问方式明确吗？
+#### 问题 6：模型是否选择了这个 Skill？
 
 **低触发率问法：**
 ```bash
 "美元对人民币是多少？"  # 太简短，模型可能直接猜答案
 ```
 
-**高触发率问法：**
+**用于诊断的明确问法：**
 ```bash
 "请用 exchange-rate skill 查询 1000 美元等于多少人民币，并说明数据来源"
 ```
 
-**稳定触发的 3 类问法：**
+**可用于对照的 3 类问法：**
 
 1. **直接点名 Skill**
    ```
@@ -458,62 +449,13 @@ description: Query real-time exchange rates between currencies. Use when the use
 
 ### 快速诊断脚本
 
+从本教程仓库根目录运行现有的只读检查，不要再复制一份容易漂移的脚本：
+
 ```bash
-#!/bin/bash
-# 保存为 check-skill.sh
-
-SKILL_NAME=$1
-SKILL_PATH=~/.nanobot/workspace/skills/$SKILL_NAME
-
-echo "=== Skill 诊断 ==="
-echo "Skill名称: $SKILL_NAME"
-echo
-
-# 检查1：路径
-if [ -d "$SKILL_PATH" ]; then
-    echo "✓ 目录存在: $SKILL_PATH"
-else
-    echo "✗ 目录不存在: $SKILL_PATH"
-    exit 1
-fi
-
-# 检查2：SKILL.md
-if [ -f "$SKILL_PATH/SKILL.md" ]; then
-    echo "✓ SKILL.md 存在"
-else
-    echo "✗ SKILL.md 不存在"
-    exit 1
-fi
-
-# 检查3：frontmatter
-if head -n 1 "$SKILL_PATH/SKILL.md" | grep -q "^---$"; then
-    echo "✓ frontmatter 格式正确"
-else
-    echo "✗ frontmatter 格式错误（应该以 --- 开头）"
-fi
-
-# 检查4：name 和 description
-if grep -q "^name:" "$SKILL_PATH/SKILL.md"; then
-    echo "✓ 包含 name 字段"
-else
-    echo "✗ 缺少 name 字段"
-fi
-
-if grep -q "^description:" "$SKILL_PATH/SKILL.md"; then
-    echo "✓ 包含 description 字段"
-else
-    echo "✗ 缺少 description 字段"
-fi
-
-echo
-echo "=== Skill 内容预览 ==="
-head -n 10 "$SKILL_PATH/SKILL.md"
+bash scripts/check-skill.sh exchange-rate
 ```
 
-**使用方法：**
-```bash
-bash check-skill.sh exchange-rate
-```
+它只检查目录、`SKILL.md` 和基础 frontmatter，并预览文件开头；不要在 Skill 中保存密钥或个人数据。`disabledSkills`、依赖满足情况和模型是否读取正文仍需按上面的生命周期逐层确认。
 
 ---
 
@@ -567,20 +509,22 @@ my-skill/
 
 ```yaml
 ---
-name: my-skill              # 必填：Skill 名称
-description: ...             # 必填：描述（触发依据！）
-always: true                 # 可选：始终加载到上下文
-metadata: {"nanobot": {...}} # 可选：依赖声明、图标等
+name: my-skill               # 应提供：便于人和模型理解
+description: ...             # 应提供：模型选择 Skill 的主要线索
+always: true                 # 可选：满足条件时完整注入
+metadata: {"nanobot": {...}} # 可选：依赖、图标、always 等
 ---
 ```
 
+运行时覆盖、禁用和加载使用的是 **Skill 目录名**。frontmatter 的 `name` 最好与目录一致，但不能靠改 `name` 来改变目录优先级。
+
 ### description 是最重要的字段
 
-`description` 是 Agent 判断"要不要读这个 Skill"的**首要线索**。
+`description` 是模型判断“这个 Skill 是否可能有用”的**主要线索**。它会与名称、用户请求和模型本身一起进入判断，不是确定性的路由表达式。
 
 **好的写法：**
 ```yaml
-description: Query real-time exchange rates between currencies. Use when the user asks about currency conversion, exchange rates, or foreign currency prices.
+description: Query the latest published exchange rate and convert an amount. Use when the user needs a cited current data source.
 ```
 
 **差的写法：**
@@ -592,14 +536,18 @@ description: Exchange rate tool
 
 ### always 标记
 
-设置 `always: true` 的 Skill 会在每次对话时**完整加载**到 System Prompt 中。
+设置 `always: true`（或 `metadata.nanobot.always`）后，Skill 在**未禁用且依赖满足**时会把去掉 frontmatter 的完整正文放入 `Active Skills`，并从普通摘要中排除。
 
 **何时使用：**
-- 记忆管理规则（如内置的 `memory` skill）
-- 必须时刻遵守的约束
+- 很短、确实需要每轮提供的操作说明
+- 无法仅靠摘要再按需读取的基础流程
 
 **何时不用：**
 - 大多数 Skill 不需要，按需加载效率更高
+- 安全权限不能靠 `always` Prompt 强制，必须下沉到 Tool 配置和系统隔离
+
+!!! info "版本差异：不要假设 memory 永远是 always"
+    v0.2.2 固定源码中的 [`memory/SKILL.md`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/skills/memory/SKILL.md) 和 `my` 带有 `always: true`。审计的 [`main@b189a376` memory/SKILL.md](https://github.com/HKUDS/nanobot/blob/b189a37648e4fa64f662b15de4f78ffd0bab403b/nanobot/skills/memory/SKILL.md) 已移除这一标记，改由摘要和模型按需选择。`always` 是具体版本中具体 Skill 的元数据，不是“memory 类 Skill 永远完整加载”的规则。
 
 ### metadata 字段
 
@@ -617,22 +565,50 @@ metadata: {
 
 **用途：**
 - 声明依赖（`requires.bins`、`requires.env`）
-- 如果依赖不满足，Skill 会被标记为 unavailable
+- `bins` 检查当前进程的可执行命令，`env` 只检查环境变量是否有非空值
+- 依赖不满足时，普通 Skill 在摘要中标为 `unavailable`；`always` Skill 不会完整注入
+
+依赖声明是可用性提示，不是安全控制。它不会限制底层 Tool，也不会验证外部服务一定健康。
 
 ---
 
-## 3.8 Skill 的加载优先级
+## 3.8 覆盖、禁用与加载优先级
 
-nanobot 会从两个地方查找 Skill：
+nanobot 会从当前配置的 Agent 工作区和安装包查找 Skill。默认工作区如下；若你配置了自定义 Agent 工作区，请替换第一条路径：
 
 ```
 1. ~/.nanobot/workspace/skills/  ← 用户自定义（优先级高）
 2. nanobot 安装目录/skills/      ← 内置（优先级低）
 ```
 
-**如果两个地方有同名 Skill，workspace 中的优先。**
+处理顺序以 [`SkillsLoader`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/skills.py) 为准：
+
+1. 收集工作区中含 `SKILL.md` 的目录。
+2. 同目录名的内置 Skill 被工作区版本覆盖。
+3. `agents.defaults.disabledSkills` 再按目录名排除 Skill。
+4. 检查 `requires.bins` / `requires.env`，决定可用状态。
+5. 满足条件的 `always` Skill 注入全文，其余进入摘要，由模型决定是否读取。
+
+因此，一个依赖缺失的工作区同名 Skill 仍会遮住内置版本；它会显示为 `unavailable`，不会自动回退到内置 Skill。
+
+要禁用某些 Skill，优先在 WebUI 修改 Agent 默认配置。手工编辑时把下面字段**合并**进现有配置，不要覆盖整个文件：
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "disabledSkills": ["weather", "exchange-rate"]
+    }
+  }
+}
+```
+
+禁用同时作用于工作区和内置同名 Skill，但它不是删除文件，也不是阻止底层工具执行相似操作的权限边界。
 
 你可以用这个机制覆盖内置 Skill 的行为。
+
+!!! info "main 差异：摘要路径更清楚，选择机制不变"
+    v0.2.2 的摘要在每个条目里给出完整路径；[`main@b189a376` 的 `SkillsLoader`](https://github.com/HKUDS/nanobot/blob/b189a37648e4fa64f662b15de4f78ffd0bab403b/nanobot/agent/skills.py) 改为按 Workspace/Built-in 分组，先给绝对根目录，再给相对 `SKILL.md` 路径。两者都只是把候选信息放进 Prompt，仍由模型决定是否调用 `read_file`。
 
 ---
 
@@ -748,9 +724,9 @@ if __name__ == "__main__":
 | 概念 | 核心要点 |
 |------|---------|
 | **Skill 是什么** | 教 Bot 如何做某件事的 Markdown 文件 |
-| **触发机制** | 三层渐进式加载：摘要 → 正文 → 资源 |
+| **选择与加载** | 生命周期：覆盖/禁用/依赖 → 摘要或 Active Skills → 模型按需读取资源 |
 | **最小结构** | 一个目录 + 一个 SKILL.md（包含 frontmatter） |
-| **最重要的字段** | `description`（决定是否触发） |
+| **最重要的字段** | `description`（给模型的主要选择线索，不是硬路由） |
 | **调试思路** | 路径 → frontmatter → 依赖 → description → 问法 |
 
 ---
