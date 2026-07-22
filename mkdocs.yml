@@ -78,5 +78,6 @@ nav:
       - 统一排障手册: zh-cn/appendix/troubleshooting-guide.md
       - 排障快速索引: zh-cn/appendix/troubleshooting.md
       - 术语表: zh-cn/appendix/glossary.md
+      - 稳定版与 main 差异: zh-cn/appendix/version-architecture-diff.md
       - 诊断脚本: zh-cn/scripts/README.md
       - 进阶营配套示例: zh-cn/examples/hero/README.md
