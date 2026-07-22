@@ -1,16 +1,32 @@
-"""Teaching snapshot for build/01-simplest-agent.md."""
+"""Teaching snapshot for hero/01-simplest-agent.md."""
+
+import os
 
 from openai import OpenAI
 
-API_BASE = "https://openrouter.ai/api/v1"
-API_KEY = "sk-or-v1-你的密钥"
-MODEL = "your-provider-supported-model"
+API_BASE = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+MODEL = os.environ.get("OPENROUTER_MODEL", "your-provider-supported-model")
 
-client = OpenAI(base_url=API_BASE, api_key=API_KEY)
+_client: OpenAI | None = None
+
+
+def get_client() -> OpenAI:
+    """Create the client lazily so importing the teaching file needs no key."""
+    global _client
+    if _client is None:
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise SystemExit("请先设置环境变量 OPENROUTER_API_KEY。")
+        _client = OpenAI(base_url=API_BASE, api_key=api_key)
+    return _client
+
+
+def print_safety_warning() -> None:
+    print("[安全提示] 这是教学示例，不是生产沙箱；它会把你的输入发送给配置的模型服务。")
 
 
 def chat(messages: list[dict]) -> str:
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model=MODEL,
         messages=messages,
         temperature=0.1,
@@ -19,6 +35,8 @@ def chat(messages: list[dict]) -> str:
 
 
 def main():
+    print_safety_warning()
+    get_client()  # 启动时尽早验证凭据，但绝不打印凭据内容。
     print("Mini Agent (输入 exit 退出)\n")
 
     messages = [
