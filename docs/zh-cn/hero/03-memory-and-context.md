@@ -24,7 +24,7 @@ nanobot 用三个机制解决这些问题：**Session 持久化**、**Context Bu
 
 ## 第一步：Session 持久化
 
-对应 `nanobot/session/manager.py`。核心思路：每个对话存为一个 JSONL 文件，每行一条消息。
+对应 v0.2.2 的 [`Session` / `SessionManager`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/session/manager.py)。核心思路：每个对话存为一个 JSONL 文件，每行一条消息。
 
 ```python
 import json
@@ -34,7 +34,7 @@ from datetime import datetime
 
 @dataclass
 class Session:
-    """一次对话的所有状态——对应 nanobot/session/manager.py:17"""
+    """一次对话的所有状态——教学简化版"""
     key: str
     messages: list[dict] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -50,7 +50,7 @@ class Session:
 
 
 class SessionManager:
-    """管理多个会话的持久化——对应 nanobot/session/manager.py:73"""
+    """管理多个会话的持久化——教学简化版"""
 
     def __init__(self, data_dir: Path):
         self.dir = data_dir / "sessions"
@@ -86,17 +86,23 @@ class SessionManager:
 
 ## 第二步：Context Builder——组装 System Prompt
 
-这是 nanobot 最精巧的设计之一（`nanobot/agent/context.py`）。System Prompt 不是写死的，而是**动态组装**的：
+这是 nanobot 最精巧的设计之一。v0.2.2 的 [`ContextBuilder`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/context.py)不会把 System Prompt 写死，而是按当前 turn 动态组装：
 
 ```
-System Prompt = 身份 + Bootstrap 文件 + 长期记忆 + 技能摘要 + 最近历史摘要
+System Prompt = 身份
+              + AGENTS.md / SOUL.md / USER.md
+              + 内置 Tool Contract
+              + 非模板的 MEMORY.md
+              + Always Skills / Skills 摘要
+              + 未被 Dream 处理的 Recent History
+              + 当前 Session 的归档摘要（如果有）
 ```
 
 ```python
 class ContextBuilder:
     """组装 System Prompt——对应 nanobot/agent/context.py"""
 
-    BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md"]
+    BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md"]
 
     def __init__(self, workspace: Path):
         self.workspace = workspace
@@ -111,7 +117,7 @@ class ContextBuilder:
                 content = path.read_text(encoding="utf-8")
                 parts.append(f"## {filename}\n\n{content}")
 
-        # 加载长期记忆
+        # 加载长期记忆（真实实现会跳过空白或未定制模板）
         memory_file = self.workspace / "memory" / "MEMORY.md"
         if memory_file.exists():
             memory = memory_file.read_text(encoding="utf-8")
@@ -150,20 +156,34 @@ class ContextBuilder:
 
 ### 为什么不把 system prompt 写死？
 
-因为**用户要能定制 Bot 的行为**。通过 `SOUL.md` 改性格、`AGENTS.md` 改规则、`USER.md` 告诉 Bot 你是谁——全部是 Markdown 文件，改完下次对话自动生效。
+因为**用户要能定制 Bot 的行为**。通过 `SOUL.md` 改性格、`AGENTS.md` 改规则、`USER.md` 告诉 Bot 你是谁——全部是 Markdown 文件，改完下次对话自动生效。工具约束来自 nanobot 内置 Tool Contract；`TOOLS.md` 不是 v0.2.2 自动加载的 Bootstrap 文件。
 
 `build_messages` 每次调用都重新读取这些文件，所以用户编辑后不需要重启。
 
+### Agent 工作区与项目工作区
+
+默认 CLI/Channel 没有另选项目时，同一个配置工作区同时承担 Agent 状态和工具工作目录。WebUI 选择项目目录后，两者才需要明确区分：
+
+| 状态 | 所有者与位置 | 生命周期 |
+|---|---|---|
+| 默认 `AGENTS.md`、`SOUL.md`、`USER.md`、`memory/`、`skills/` | 配置的 Agent 工作区 | 实例的持久状态；Dream 只整理这里的 `SOUL.md`、`USER.md` 和 `MEMORY.md`，不改 `AGENTS.md` |
+| 项目级 `AGENTS.md`、`SOUL.md`、`USER.md` | WebUI 当前选择的项目工作区 | 选择项目后，ContextBuilder 从项目根读取这三个文件，不再自动叠加 Agent 工作区同名文件；Dream 不管理这些项目文件 |
+| `sessions/*.jsonl` 与会话 metadata | Agent 工作区的 SessionManager | 按 session key 持久化；WebUI 项目路径作为会话 scope metadata 保存 |
+| 项目源码和产物 | 当前项目工作区 | 由文件/命令工具在当前访问模式下操作，不属于长期记忆文件 |
+
+不要让 Dream 把项目源码事实写进 `SOUL.md`，也不要把个人偏好散落到每个项目的 `AGENTS.md`。长期项目事实可以进入 `MEMORY.md`，但应写清适用项目和过期条件。
+
 ## 第三步：持久化记忆
 
-对应 `nanobot/agent/memory.py`。当前实现是分层设计：
+对应 v0.2.2 的 [`MemoryStore` 与 `Consolidator`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/memory.py)。当前实现是分层设计：
 
-| 层 | 文件 | 特点 |
+| 层 | 文件或状态 | 特点 |
 |---|---|---|
-| 长期记忆 | `memory/MEMORY.md` | **每次对话都注入** system prompt，存放重要事实 |
-| 历史摘要归档 | `memory/history.jsonl` | 追加式 JSONL，可 grep / jq 搜索，存放被压缩后的旧对话 |
-| Dream 状态 | `memory/.cursor` / `memory/.dream_cursor` | 记录摘要写入位置和 Dream 已处理位置 |
-| 记忆版本 | `memory/.git/` | Dream 修改长期文件后的轻量版本历史 |
+| 原始会话 | `sessions/<key>.jsonl` | 保存消息和 metadata；是否重写取决于压缩路径 |
+| 摘要归档 | `memory/history.jsonl` | Consolidator 追加旧对话摘要；失败时追加受限长度的 `[RAW]` 归档 |
+| 长期记忆 | `memory/MEMORY.md` | Dream 可整理的重要事实；只有非空且不再等于初始模板时才注入 |
+| 游标 | `memory/.cursor` / `memory/.dream_cursor` | 前者分配摘要序号，后者记录 Dream 已成功处理到的位置 |
+| 记忆版本 | Agent 工作区根的 `.git/`（可选） | 只在能初始化独立版本库时跟踪 `SOUL.md`、`USER.md`、`MEMORY.md` 和 Dream cursor |
 
 ```python
 class MemoryStore:
@@ -201,101 +221,135 @@ class MemoryStore:
         return 1
 ```
 
-### 记忆整合（Memory Consolidation）
+### 两层生命周期：Consolidator 归档，Dream 整理
 
-当对话太长时，nanobot 会先由 **Consolidator** 把旧消息交给 LLM 总结，并把摘要追加到 `memory/history.jsonl`。随后 **Dream** 会定期读取这些新摘要，分析哪些内容应该沉淀为长期事实，再用文件工具谨慎编辑 `SOUL.md`、`USER.md` 和 `MEMORY.md`。
+真实 nanobot 不让一次脆弱的 JSON 输出同时决定“删哪些对话”和“长期相信什么”。它把生命周期拆成两层：
 
-教学版为了让机制更容易看懂，把这两步压缩成一个 `consolidate_memory()`：旧消息 → 摘要 → `history.jsonl`，再把最重要的结论写入 `MEMORY.md`。真实 nanobot 的 token-driven consolidation 更克制：它主要推进内部游标，保留原始 session 文件，并只让未整合部分继续参与上下文构建。
+```mermaid
+flowchart LR
+    S[Session 消息] --> C[Consolidator]
+    C --> H[memory/history.jsonl]
+    H --> R[Recent History]
+    H --> D[Dream]
+    D --> F[SOUL / USER / MEMORY]
+    D --> G[Dream cursor + 可选 Git 版本]
+```
 
-这个机制确保了：
-- 上下文窗口不会撑爆
-- 重要信息不会丢失
-- `MEMORY.md` 里的事实每次对话都可用
+#### 第一层：Consolidator 只做摘要归档
 
-简化版实现：
+v0.2.2 的 [`Consolidator`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/memory.py)有两条压缩路径：
+
+| 触发方式 | 对 Session 做什么 | 共同结果 |
+|---|---|---|
+| token 压力触发的软整合 | 选择完整对话轮次作为边界，推进 `last_consolidated`；原始 Session 文件仍保留 | 把被移出当前上下文的内容总结到 `history.jsonl` |
+| 空闲会话自动压缩 | 保留最近的合法消息后缀，重写 Session，并保存归档摘要 metadata | 同样把被移除内容总结到 `history.jsonl` |
+
+Consolidator **不会**直接改 `SOUL.md`、`USER.md` 或 `MEMORY.md`。如果摘要模型失败，它会写入受限长度的 `[RAW]` 归档，避免因为一次整理失败中断正常对话。
+
+下面的教学函数只演示“旧消息 → 摘要归档”这一层。它直接裁掉旧消息是为了缩短代码；真实 token 软整合会推进游标而保留原始 Session：
 
 ```python
-async def consolidate_memory(
+async def archive_old_messages(
     client: OpenAI, model: str,
     session: Session, memory: MemoryStore,
     keep_recent: int = 25,
 ):
-    """把旧消息整合进记忆——教学版，对应 nanobot/agent/memory.py 的主干思想"""
+    """教学版 Consolidator：只归档摘要，不改长期记忆文件。"""
     if len(session.messages) <= keep_recent:
-        return  # 还不够长，不需要整合
+        return
 
     old = session.messages[:-keep_recent]
-    current_memory = memory.read_memory()
+    prompt = f"""Summarize the durable facts and decisions in this conversation.
 
-    # 让 LLM 做总结
-    prompt = f"""Summarize this conversation and update the memory.
-
-## Current Memory
-{current_memory or "(empty)"}
-
-## Conversation
 {json.dumps(old, ensure_ascii=False, indent=2)[:8000]}
 
-Respond in JSON: {{"history": "summary for log", "memory": "updated memory markdown"}}"""
+Return only a concise archival summary."""
 
     resp = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": "You consolidate conversations into memory."},
+            {"role": "system", "content": "You archive conversation history."},
             {"role": "user", "content": prompt},
         ],
         temperature=0,
     )
 
-    try:
-        result = json.loads(resp.choices[0].message.content)
-        if result.get("history"):
-            memory.append_history(result["history"])
-        if result.get("memory"):
-            memory.write_memory(result["memory"])
-        # 教学简化：直接丢弃旧消息。真实 nanobot 更偏向推进游标并保留原始 session 文件。
+    summary = (resp.choices[0].message.content or "").strip()
+    if summary:
+        memory.append_history(summary)
         session.messages = session.messages[-keep_recent:]
-        print("  [Memory] Consolidated old messages")
-    except (json.JSONDecodeError, KeyError):
-        pass  # 整合失败就跳过，不影响正常对话
 ```
 
-nanobot 的实现更精巧：`Consolidator` 负责在上下文压力过大时把旧消息压缩进 `history.jsonl`；`Dream` 则作为后台记忆整理器，分两阶段分析历史摘要并编辑长期记忆文件。Dream 的修改还会进入轻量 Git 历史，用户可以用 `/dream-log` 和 `/dream-restore` 查看或恢复。
+#### 第二层：Dream 整理持久文件
 
-### 先别把这三个概念混在一起
+[`MemoryStore.build_dream_prompt()`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/memory.py)只读取 `.dream_cursor` 之后的新归档。Gateway 的定时任务或 `/dream` 会启动一次临时 Dream Session，让模型用受限文件工具审阅这些摘要，并在确有必要时编辑 **Agent 工作区**中的 `SOUL.md`、`USER.md` 和 `memory/MEMORY.md`。
 
-| 概念 | 它解决什么 | 它存什么 |
+只有 Dream 正常完成，`.dream_cursor` 才前移；失败或中止会留下待处理摘要，供下次重试。若 Agent 工作区能够初始化独立 Git 仓库，Dream 还会提交这些持久文件的变化。它不会整理 `AGENTS.md`，也不会修改 WebUI 当前选择的项目级 Bootstrap 文件。
+
+#### 每轮究竟会注入什么
+
+[`ContextBuilder`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/context.py)会区分四种上下文，不要把它们都叫作“长期记忆”：
+
+| 内容 | 注入条件 |
+|---|---|
+| 当前 Session 历史 | 从未被软整合的消息开始，并受当前历史窗口限制 |
+| Session 归档摘要 | 当前 Session metadata 中已有摘要时，以 `Archived Context Summary` 注入 |
+| recent history（Recent History） | 仅非临时运行启用；读取 Dream cursor 之后的待处理归档，最多取最近 50 条并受 token 上限限制；普通模式只取当前 session key，统一会话模式还会合并其他非内部会话 |
+| `MEMORY.md` | 文件非空，且内容不再等于初始模板时才注入 |
+
+因此，短对话还没触发 Consolidator 时，`/dream` 可能提示没有新历史；Dream 成功消费摘要后，同一批内容也不会继续以 Recent History 重复注入。临时 Dream 运行本身不会再套入这段 pending history。
+
+#### Dream 命令
+
+v0.2.2 的 [`builtin command router`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/command/builtin.py)提供以下入口：
+
+| 命令 | 行为 |
+|---|---|
+| `/dream` | 异步启动一次整理；没有 cursor 之后的新归档时不会改文件 |
+| `/dream-log`、`/dream-log <sha>` | 查看最近一次或指定 Dream 提交的 diff；需要 Agent 工作区已启用版本记录 |
+| `/dream-restore` | 列出最近可恢复的 Dream 版本 |
+| `/dream-restore <sha>` | 撤销该提交引入的变化，并创建一条新的安全恢复提交 |
+| `/dream-prompt` | **v0.2.2 不支持**，[固定对照的 `main@b189a376`](https://github.com/HKUDS/nanobot/blob/b189a37648e4fa64f662b15de4f78ffd0bab403b/nanobot/command/builtin.py)也未注册此命令；Dream prompt 是内部模板，不能把这项写成可执行步骤 |
+
+### 先别把这些概念混在一起
+
+| 概念 | 它解决什么 | 它保存或处理什么 |
 |---|---|---|
-| `Session` | 当前会话历史别丢 | 原始对话消息 |
-| `Context Builder` | 每轮发给模型什么上下文 | system prompt + 历史 + 运行时信息 |
-| `Memory` | 长对话里重要事实别丢 | 提炼后的长期事实和摘要 |
+| `Session` | 当前会话历史别丢 | 原始对话消息与 metadata |
+| `Context Builder` | 决定每轮发给模型什么 | Bootstrap、工具约束、历史、摘要、长期记忆与运行时信息 |
+| `Consolidator` | 上下文放不下时归档旧内容 | Session 边界与 `history.jsonl` 摘要 |
+| `Dream` | 定期清理和沉淀 Agent 状态 | 根据新摘要谨慎修改 SOUL、USER、MEMORY，并推进 Dream cursor |
+| `Memory` | 跨会话保留经过筛选的事实 | `MEMORY.md`；不是全部原始对话的副本 |
 
 很多初学者会把“重启后还记得”和“长期记忆已经整合”混成一件事。实际上这是两层不同机制。
 
 ## 本章你真正学到的抽象
 
-这一章真正引入了 3 个长期有效的设计点：
+这一章真正引入了 4 个长期有效的设计点：
 
 - `Session Persistence`：把对话状态从内存搬到磁盘
 - `Context Builder`：把静态配置、动态记忆、运行时信息拼成统一上下文
-- `Memory / Dream Consolidation`：用摘要归档和长期记忆对抗上下文窗口上限
+- `Consolidator`：把离开当前上下文的旧消息变成可追踪摘要
+- `Dream`：异步筛选摘要，再谨慎维护长期 Agent 状态
 
 从这里开始，Agent 不再只是“会调用工具的聊天循环”，而是一个有稳定人格、跨轮状态和上下文预算意识的系统。
 
 ## 最小验证步骤
 
-建议按顺序做下面 4 个验证：
+建议按顺序做下面 5 个验证：
 
 1. 跑一次程序并完成几轮对话，确认会生成 `sessions/` 和 `memory/` 相关文件
 2. 重启程序，再问一个延续上一轮的问题，确认至少 session 历史仍然存在
 3. 修改 `SOUL.md` 或 `AGENTS.md`，确认下一次对话的风格或流程发生变化
-4. 构造一段较长对话，手动触发或观察记忆整合后 `memory/history.jsonl` 和 `MEMORY.md` 的变化；真实 nanobot 还可以用 `/dream-log` 查看 Dream 修改了什么
+4. 构造足够长的对话，观察 Consolidator 向 `memory/history.jsonl` 追加摘要；短对话没有摘要是正常现象
+5. 在真实 nanobot 中发送 `/dream`，完成后用 `/dream-log` 检查 diff；恢复前先用 `/dream-restore` 查看版本列表和目标 SHA
 
 ## 常见失败点
 
 - 重启后“没有记忆”：先区分是 session 历史没保存，还是长期记忆没写入，这是两套机制
 - 改了 `SOUL.md` 没效果：通常是 build_messages 没有重新读取文件，或 system prompt 没重新构建
-- 记忆整合输出不稳定：让模型直接返回 JSON 很脆弱，真实 nanobot 把“压缩旧消息”和“整理长期记忆”拆成 Consolidator + Dream 两层来降低风险
+- `/dream` 没有可处理内容：先确认 `history.jsonl` 中存在 `.dream_cursor` 之后的新摘要；短对话可能尚未触发 Consolidator
+- `/dream-log` 没有版本：Agent 工作区可能无法初始化独立 Git 仓库，或 Dream 还没有产生文件变化
 - 上下文仍然爆掉：说明你只有“保存历史”，没有真正限制传给模型的历史窗口
 
 ## 完整代码
@@ -304,12 +358,12 @@ nanobot 的实现更精巧：`Consolidator` 负责在上下文压力过大时把
 
 - `SessionManager`：负责把会话历史保存和读回来
 - `ContextBuilder`：负责把静态文件、记忆和运行时信息拼成完整上下文
-- `MemoryStore` / `consolidate_memory()`：负责把旧消息折叠成摘要归档和长期记忆
+- `MemoryStore`：负责长期记忆与摘要归档的文件读写；前面的 `archive_old_messages()` 只演示 Consolidator 的归档职责
 
-带着这 3 个问题去看代码，会比直接从头扫到尾轻松很多。
+带着这 3 个职责去看代码，会比直接从头扫到尾轻松很多。为保持示例可独立阅读，下面的教学 Agent 只实现 Session、Context Builder 和 MemoryStore；生产版的异步 Dream 生命周期应继续交给 nanobot。
 
 ```python
-"""mini_agent.py — 带记忆和个性的 Agent，~300 行"""
+"""mini_agent.py — 带记忆和个性的教学 Agent"""
 
 import asyncio
 import json
@@ -478,7 +532,7 @@ class SessionManager:
 # ── Context Builder ──────────────────────────────────
 
 class ContextBuilder:
-    BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md"]
+    BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md"]
 
     def __init__(self, workspace: Path):
         self.workspace = workspace
@@ -592,9 +646,9 @@ Bot: 你叫小明，你喜欢用 Python。
 | 概念 | 我们的代码 | nanobot 的代码 |
 |------|-----------|---------------|
 | Session 持久化 | JSONL 简单序列化 | JSONL + metadata 行 + 缓存 + legacy 迁移 |
-| Context Builder | 拼接 Bootstrap 文件 + Memory | 同上 + Skills 摘要 + Runtime Context + 最近历史摘要 |
-| 记忆整合 | 简化版 JSON 解析 | Consolidator 写入 `history.jsonl` + Dream 整理 `SOUL.md` / `USER.md` / `MEMORY.md` |
-| Bootstrap 文件 | 4 个 Markdown | 同样 4 个，但有模板同步机制 |
+| Context Builder | 拼接 3 个 Bootstrap 文件 + 非空 Memory | 同上 + 内置 Tool Contract + Skills + Runtime Context + 条件式 Recent History |
+| 记忆生命周期 | 片段只演示摘要归档 | Consolidator 写入 `history.jsonl`；Dream 再整理 `SOUL.md` / `USER.md` / `MEMORY.md` |
+| Bootstrap 文件 | `AGENTS.md`、`SOUL.md`、`USER.md` | 同样 3 个，并支持模板同步；工具约束由内置 contract 提供 |
 
 ## 还缺什么？
 
