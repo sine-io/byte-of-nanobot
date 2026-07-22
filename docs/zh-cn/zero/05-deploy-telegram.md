@@ -1,191 +1,180 @@
-# 第 5 章：部署到 Telegram
+# 第 5 章：连接 Telegram、Discord 与 Slack
 
-> 目标：把你的 Bot 接到 Telegram，让它在真实聊天场景中工作。
+> 目标：把已经在本地验收过的 Bot 接到聊天平台，并用明确的身份策略控制谁能访问它。
 
-> ⚠️ **重要提示**：如果你还没完成 [第 4 章：本地完整验收](04-local-integration.md)，**强烈建议先回去完成**。否则一旦 Telegram 上收不到回复，你很难判断是平台问题还是 Bot 本身的问题。
+!!! warning "先完成本地验收"
+    如果 `nanobot agent -m "你好"` 还不能稳定回复，请先完成[第 4 章：本地完整验收](04-local-integration.md)。Channel 会额外引入平台凭据、事件权限、网络连接和群聊策略，不能替代本地排错。
 
 ---
 
-## 5.1 从 CLI 到 Gateway
+## 5.1 从 CLI 到 Gateway 和 Channel 插件
 
-前面章节我们一直用 `nanobot agent` 在终端里聊天。现在要把 Bot 部署到真实的聊天平台。
-
-### 关键区别
+前面使用的 `nanobot agent` 是一次性的终端入口；`nanobot gateway` 则持续运行并承载 Telegram、Discord、Slack 和 WebUI 等 Channel。
 
 | | CLI 模式 | Gateway 模式 |
 |---|---|---|
 | 命令 | `nanobot agent` | `nanobot gateway` |
-| 用户界面 | 终端 | Telegram / Discord / 其他平台 |
-| 运行方式 | 聊完就退出 | 持续运行，等待消息 |
-| 消息来源 | 键盘输入 | 聊天平台 API |
-| 适用场景 | 开发调试 | 生产使用 |
-
-### Gateway 的工作原理
+| 用户入口 | 当前终端 | 聊天平台或 WebUI |
+| 生命周期 | 单次消息或交互会话 | 持续接收和发送消息 |
+| 主要用途 | 配置与模型排错 | 长期运行多个 Channel |
 
 ```mermaid
 flowchart LR
-    telegram[Telegram 服务器] --> gateway[nanobot gateway]
+    platform[Telegram / Discord / Slack] --> channel[Channel 插件]
+    channel --> gateway[nanobot gateway]
     gateway --> bus[MessageBus]
     bus --> agent[AgentLoop]
-    agent --> llm[LLM API]
-    llm --> agent
     agent --> bus
-    bus --> gateway
-    gateway --> telegram
+    bus --> channel
+    channel --> platform
 ```
 
-**核心设计：MessageBus**
-- Gateway 不直接和 AgentLoop 通信
-- 中间有一层 MessageBus（消息总线）
-- 这样设计的好处：可以同时接入多个平台（Telegram + Discord + Slack）
+v0.2.2 会同时发现内置 Channel 和通过 Python entry point 安装的第三方 Channel。发现插件不等于启用插件：配置项中的 `enabled: true` 才会让 Gateway 启动它。
+
+```bash
+# 查看内置与第三方 Channel，以及各自是否启用
+nanobot plugins list
+
+# 查看当前配置中的 Channel 状态
+nanobot channels status
+```
+
+`nanobot plugins list` 的 `Source` 列会显示 `builtin` 或 `plugin`。Telegram、Discord 和 Slack 随 v0.2.2 提供，无需另装 Channel 包。
+
+!!! info "WebUI 也是一个 Channel"
+    WebUI 由 `channels.websocket` 提供，默认地址是 `http://127.0.0.1:8765`。它与 Telegram 可以同时启用并共用一个 Gateway；端口 `18790` 是 Gateway 健康检查端口，不是 WebUI。
 
 ---
 
 ## 5.2 接平台前的最后确认
 
-在继续之前，花 30 秒确认这 3 件事：
+- [ ] `nanobot agent -m "你好"` 能返回正常回复
+- [ ] `SOUL.md` 中的行为策略已经生效
+- [ ] 至少有一个 Skill 在本地成功触发过
+- [ ] `tools.restrictToWorkspace` 已按第 4 章设为 `true`
+- [ ] Channel Token 和模型密钥都只通过环境变量注入
 
-### 检查清单
-
-- [ ] **第 1 章**：`nanobot agent -m "你好"` 能返回正常回复
-- [ ] **第 2 章**：修改过 `SOUL.md`，观察到回复风格变化
-- [ ] **第 3 章**：至少有一个 Skill 成功触发过
-- [ ] **第 4 章**：完成了三轮本地验收，记录了输入输出
-
-**如果有任何一项还没完成，建议先回到对应章节。**
-
-> 💡 **为什么这么强调？** 因为一旦部署到 Telegram，出问题时你会面临更多变量：网络延迟、平台限制、webhook 配置等。如果 Bot 本身就没调好，这些额外变量会让排查变得非常困难。
+本章以 nanobot v0.2.2 的 [`Channel registry`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/channels/registry.py) 和 [`BaseChannel`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/channels/base.py) 为准。先接通一个私聊入口，再考虑群聊和长期运行。
 
 ---
 
 ## 5.3 实操：连接 Telegram
 
-Telegram 是最容易上手的平台：无需服务器、无需域名、配置简单。
+Telegram 默认使用 long polling，因此本地试用不需要域名或公网 webhook。
 
-### 步骤 1：创建 Telegram Bot
+### 步骤 1：创建 Bot 并保存 Token
 
-1. 在 Telegram 里搜索 `@BotFather`
-2. 发送 `/newbot`
-3. 按提示设置 Bot 的显示名称（如 "我的财务顾问"）
-4. 设置 Bot 的用户名（必须以 `bot` 结尾，如 `my_finance_bot`）
-5. 创建成功后，复制得到的 **Bot Token**
+1. 在 Telegram 搜索 `@BotFather`。
+2. 发送 `/newbot`，按提示设置名称和以 `bot` 结尾的用户名。
+3. 把生成的 Bot Token 保存为当前终端的环境变量：
 
-**Bot Token 格式：**
-```
-123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+```bash
+export TELEGRAM_BOT_TOKEN='从 BotFather 获得的 Token'
 ```
 
-⚠️ **重要：** 这个 Token 相当于密码，不要泄露给任何人！
+Token 等同于 Bot 密码。不要把真实值写进教程、Git 提交、截图或聊天消息。
 
----
+### 步骤 2：选择访问控制方式
 
-### 步骤 2：获取你的 Telegram 数字用户 ID
+Telegram 支持两种适合首次上线的方式。
 
-`allowFrom` 需要的不是用户名（如 `@username`），而是你的 **数字用户 ID**。
+#### 方式 A：显式 `allowFrom`
 
-#### 方法 A：使用 ID 查询 Bot（推荐）
+`allowFrom` 接受以下精确标识：
 
-1. 在 Telegram 中搜索 `@userinfobot`
-2. 给它发送任意消息
-3. 它会返回你的用户 ID，类似：`Your ID: 123456789`
+- 数字用户 ID，例如 `"123456789"`；这是更稳定的选择。
+- Telegram 用户名，例如 `"alice"`；不要带 `@`，且用户改名后要同步修改配置。
 
-#### 方法 B：临时开放后从日志获取（不推荐）
+数字 ID 可通过 Telegram 客户端或可信的 ID 查询 Bot 获取。v0.2.2 会把数字 ID 和当前用户名一起带入消息，并分别尝试精确匹配；因此“只能填数字”或“任何用户名格式都可以”都不准确。
 
-1. 暂时把 `allowFrom` 设为 `["*"]`
-2. 给 Bot 发一条消息
-3. 从 `nanobot gateway` 的日志中找到你的 ID
-4. **立即**把 `allowFrom` 改回只允许你自己
+#### 方式 B：只使用配对码
 
-⚠️ **方法 B 有安全风险，只应在测试环境使用！**
+省略 `allowFrom`。未批准的用户第一次给 Bot 发私信时会收到形如 `ABCD-EFGH` 的配对码，管理员批准后才能继续使用。配对码 10 分钟过期；未批准的群聊消息不会收到配对码。
 
----
+不要为了获取 ID 临时设置 `"allowFrom": ["*"]`。该值会允许任何能找到 Bot 的人调用它。
 
-### 步骤 3：配置 config.json
+### 步骤 3：写入 Channel 配置
 
-编辑 `~/.nanobot/config.json`，添加或修改以下部分：
+可以运行 `nanobot onboard`，进入 **Chat Channels → Telegram** 让终端向导写入配置；也可以把下面片段合并到 `~/.nanobot/config.json`：
 
 ```json
 {
-  "providers": {
-    "openrouter": {
-      "apiKey": "sk-or-v1-你的密钥"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "provider": "openrouter",
-      "model": "openai/gpt-4-turbo"
-    }
-  },
-  "tools": {
-    "restrictToWorkspace": true
-  },
   "channels": {
     "telegram": {
       "enabled": true,
-      "token": "你的Bot Token",
-      "allowFrom": ["你的Telegram数字用户ID"]
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowFrom": ["123456789"]
     }
   }
 }
 ```
 
-### 配置字段详解
+如果选择配对码方式，删除整个 `allowFrom` 行。不要把代码块覆盖到已有配置之上；应保留已经配置好的 `modelPresets`、Provider、工具和其他 Channel。
 
-| 字段 | 说明 | 示例值 | 注意事项 |
-|------|------|--------|---------|
-| `channels.telegram.enabled` | 是否启用 Telegram 频道 | `true` | 必须设为 true |
-| `channels.telegram.token` | Bot Token | `123456:ABC...` | 从 BotFather 获取 |
-| `channels.telegram.allowFrom` | 白名单（数字用户 ID） | `["123456789"]` | **不是用户名！** |
-| `tools.restrictToWorkspace` | 限制文件操作在工作区内 | `true` | 第一次上线建议设为 true |
+| 字段 | 作用 | 首次上线建议 |
+|---|---|---|
+| `enabled` | 让 Gateway 启动 Telegram Channel | `true` |
+| `token` | BotFather Token | 使用 `${TELEGRAM_BOT_TOKEN}` |
+| `allowFrom` | 显式白名单 | 填自己的数字 ID，或省略并使用配对 |
+| `groupPolicy` | 群聊响应策略 | 保持默认 `mention` |
 
-### ⚠️ 最容易配错的字段：`allowFrom`
+#### 可选：同时启用 WebUI
 
-这是第一次部署时最常见的问题：
+如果第 1 章的向导尚未启用 WebUI，可在同一个 `channels` 对象中再合并：
 
-| 错误配置 | 结果 | 正确配置 |
-|---------|------|---------|
-| `"allowFrom": ["@username"]` | ❌ Bot 不会回复 | `"allowFrom": ["123456789"]` |
-| `"allowFrom": []` | ❌ 拒绝所有人（包括你） | `"allowFrom": ["123456789"]` |
-| `"allowFrom": ["*"]` | ⚠️ 任何人都能用（不安全） | `"allowFrom": ["123456789"]` |
+```json
+{
+  "channels": {
+    "websocket": {
+      "enabled": true,
+      "tokenIssueSecret": "${NANOBOT_WEBUI_PASSWORD}",
+      "websocketRequiresToken": true
+    }
+  }
+}
+```
 
-**记住：`allowFrom` 里填的是纯数字 ID，不是用户名，也不带 `@`。**
+这不是把 Telegram 凭据交给 WebUI；它只是增加一个受密码保护的本地管理入口。设置 `NANOBOT_WEBUI_PASSWORD` 后，Gateway 启动时可在 `http://127.0.0.1:8765` 打开它。
 
----
-
-### 步骤 4：启动 Gateway
+### 步骤 4：先检查，再启动
 
 ```bash
+nanobot plugins list
+nanobot channels status
 nanobot gateway
 ```
 
-**预期输出：**
+继续之前，确认 Telegram 在前两个命令中都显示为已发现且已启用。保持 Gateway 终端运行，并在需要详细连接日志时使用 `nanobot gateway --verbose`。
+
+### 步骤 5：完成首次对话或配对
+
+在 Telegram 找到 Bot，点击 **Start**，然后发送：
+
+```text
+你好，请用一句话介绍你自己
 ```
-🐈 Starting nanobot gateway on port 18790...
-✓ Channels enabled: telegram
-✓ Listening for messages...
+
+- 如果你的标识已在 `allowFrom` 中，Bot 应直接回复。
+- 如果省略了 `allowFrom`，Bot 会先返回配对码。把配对码交给管理员，不要公开发送。
+
+管理员可在本机终端审批：
+
+```bash
+nanobot agent -m "/pairing list"
+nanobot agent -m "/pairing approve ABCD-EFGH"
 ```
 
-**保持这个终端窗口运行。** Gateway 是一个持续运行的服务，不像 `nanobot agent` 那样聊完就退出。
+也可以在已经通过密码登录的 WebUI 聊天中发送 `/pairing approve ABCD-EFGH`。审批立即生效，无需重启 Gateway。其余管理命令如下：
 
----
+| 命令 | 作用 |
+|---|---|
+| `/pairing` 或 `/pairing list` | 查看尚未过期的请求 |
+| `/pairing approve <code>` | 批准请求 |
+| `/pairing deny <code>` | 拒绝请求 |
+| `/pairing revoke <user_id>` | 撤销当前 Channel 中的用户 |
+| `/pairing revoke <channel> <user_id>` | 撤销指定 Channel 中的用户 |
 
-### 步骤 5：第一次对话
-
-1. 在 Telegram 中找到你的 Bot（通过用户名搜索）
-2. 点击 **Start** 或发送 `/start`
-3. 发送一条消息：`你好，请介绍一下你自己`
-
-**预期结果：**
-- Bot 在几秒内回复
-- 回复内容符合你在 `SOUL.md` 中定义的风格
-
-**同时观察终端：**
-```
-[2026-06-15 10:30:15] Received message from 123456789
-[2026-06-15 10:30:16] Processing: 你好，请介绍一下你自己
-[2026-06-15 10:30:18] Response sent
-```
+批准记录保存在 `~/.nanobot/pairing.json`。不要手工改这个文件，也不要把它提交到版本库。
 
 ---
 
@@ -230,110 +219,80 @@ nanobot gateway
 ```
 
 **检查点：**
-- [ ] Bot 给出了具体的换算结果
-- [ ] 说明了数据来源（ExchangeRate-API）
-- [ ] 终端显示了工具调用日志（`[Tool] exec(...)`）
+- [ ] Bot 给出了查询时刻、币种、换算结果和数据来源
+- [ ] 没有把教程里的旧汇率当作固定答案
+- [ ] Gateway 日志显示了对应的工具调用
 - [ ] 符合第 4 章本地验收时的表现
 
 ---
 
 ## 5.5 遇到问题了？快速诊断
 
-如果 Telegram 上没有收到回复，用这个决策树诊断：
+如果 Telegram 没有回复，按“发现 → 启用 → 连接 → 授权 → 模型”的顺序排查：
 
 ```mermaid
 flowchart TD
-    start[Bot 不回复] --> q1{Gateway 是否在运行？}
-    q1 -- 否 --> fix1[运行 nanobot gateway]
-    q1 -- 是 --> q2{终端有日志吗？}
-    
-    q2 -- 没有任何日志 --> fix2[检查 Bot Token 是否正确<br/>重新从 BotFather 获取]
-    q2 -- 有日志但报错 --> q3{什么错误？}
-    q2 -- 有日志但无回复 --> fix3[检查 allowFrom 是否包含你的 ID<br/>确认是数字 ID 而不是用户名]
-    
-    q3 -- 401/Unauthorized --> fix4[检查 config.json 中的 API Key]
-    q3 -- 403/Forbidden --> fix5[检查 allowFrom 白名单<br/>确认你的 ID 在列表中]
-    q3 -- Connection timeout --> fix6[检查网络连接<br/>是否能访问 Telegram API]
-    
-    fix1 --> verify[重新测试]
-    fix2 --> verify
-    fix3 --> verify
-    fix4 --> verify
-    fix5 --> verify
-    fix6 --> verify
+    start[Telegram 不回复] --> q1{plugins list 能发现 Telegram?}
+    q1 -- 否 --> fix1[确认安装的是 nanobot v0.2.2]
+    q1 -- 是 --> q2{channels status 显示 enabled?}
+    q2 -- 否 --> fix2[检查 channels.telegram.enabled 和配置文件]
+    q2 -- 是 --> q3{Gateway 已连接 Telegram?}
+    q3 -- 否 --> fix3[检查 Token 环境变量和网络]
+    q3 -- 是 --> q4{私聊收到回复或配对码?}
+    q4 -- 否 --> fix4[检查 allowFrom 精确值并重启 Gateway]
+    q4 -- 是 --> q5{模型调用成功?}
+    q5 -- 否 --> fix5[回到 CLI 检查模型预设和 Provider]
+    q5 -- 是 --> ok[部署路径正常]
 ```
 
 ### 常见问题速查表
 
 | 症状 | 最可能的原因 | 快速排查 |
-|------|------------|---------|
-| Bot 完全不回复，终端无日志 | Bot Token 错误 | 重新复制 Token，注意不要有多余空格 |
-| Bot 不回复，终端显示"Forbidden" | 不在白名单中 | 确认 `allowFrom` 中有你的数字 ID |
-| Bot 回复但内容是错误信息 | LLM API 配置问题 | 检查 `providers` 和 `model` 配置 |
-| Bot 回复很慢（>30秒） | 模型响应慢或网络问题 | 尝试换一个更快的模型 |
-| 工具调用失败 | 工作区权限或依赖问题 | 先在 CLI 模式验证工具能否正常工作 |
-
----
+|---|---|---|
+| `channels status` 显示未启用 | 配置路径或 `enabled` 错误 | 重新运行 `nanobot onboard`，或检查 `~/.nanobot/config.json` |
+| Gateway 报认证失败 | Token 为空、过期或复制错误 | 重新导出环境变量并重启 Gateway |
+| 私聊只返回配对码 | 当前用户尚未批准 | 在本地终端或已登录 WebUI 执行 `/pairing approve` |
+| `allowFrom` 已配置但仍被拒绝 | 标识带了 `@`、用户名已变化或值不精确 | 改用数字 ID，重启 Gateway |
+| 群聊不回复但私聊正常 | 默认只响应提及 | 在群里 `@Bot`，不要急着改为 `open` |
+| Bot 返回模型错误 | Channel 已通，Provider 或模型配置失败 | 用同一环境运行 `nanobot agent -m "测试"` |
+| 工具调用失败 | 工作区或依赖问题 | 先在 CLI 使用同一输入复现 |
 
 ### 详细排查步骤
 
-#### 问题 1：Gateway 运行但没有任何日志
+#### 1. 确认插件和配置状态
 
-**可能原因：** Bot Token 配置错误
-
-**排查方法：**
 ```bash
-# 1. 检查 config.json 中的 token
-cat ~/.nanobot/config.json | grep -A 5 "telegram"
-
-# 2. 确认 token 格式正确（应该是 数字:字母）
-# 正确格式：123456789:ABCdefGHI...
-# 错误格式：sk-or-v1-... (这是 LLM API Key，不是 Bot Token)
-
-# 3. 重新从 BotFather 获取 Token
-# 在 Telegram 中给 @BotFather 发送 /mybots
-# 选择你的 Bot -> API Token
+nanobot plugins list
+nanobot channels status
 ```
 
----
+如果 Telegram 未启用，先修配置；此时重试消息或排查模型都不会有帮助。
 
-#### 问题 2：终端显示"Forbidden"或"User not allowed"
+#### 2. 确认环境变量存在，但不要打印 Token
 
-**可能原因：** allowFrom 配置错误
-
-**排查方法：**
 ```bash
-# 1. 确认你的 Telegram 数字 ID
-# 给 @userinfobot 发消息，获取你的 ID
-
-# 2. 检查 config.json
-cat ~/.nanobot/config.json | grep -A 3 "allowFrom"
-
-# 3. 确认配置正确
-# ✅ 正确："allowFrom": ["123456789"]
-# ❌ 错误："allowFrom": ["@username"]
-# ❌ 错误："allowFrom": []
-
-# 4. 临时调试（仅用于测试！）
-# 可以暂时设为 ["*"] 测试连接，确认后立即改回自己的 ID
+test -n "${TELEGRAM_BOT_TOKEN:-}" && echo "Telegram Token 已设置" || echo "Telegram Token 未设置"
+nanobot gateway --verbose
 ```
 
----
+认证错误时从 BotFather 重新生成 Token，然后在启动 Gateway 的同一环境中重新导出。不要使用 `cat`、`grep` 或调试日志把完整配置和 Token 打到终端记录里。
 
-#### 问题 3：Bot 回复了但内容不对
+#### 3. 区分白名单与配对问题
 
-**可能原因：** Bot 本身没配置好
+- 显式白名单：优先使用数字 ID；用户名必须去掉 `@` 并保持与当前用户名完全一致。
+- 配对模式：从私聊获取新配对码，再用 `/pairing list` 确认它仍未过期。
+- 修改 `config.json` 或环境变量后要重启 Gateway；批准配对码则无需重启。
+- 群聊不会向未批准用户发送配对码，先回到私聊完成配对。
 
-**解决方案：**
-1. **回到 CLI 模式验证**
-   ```bash
-   # 按 Ctrl+C 停止 gateway
-   nanobot agent -m "测试消息"
-   ```
-   
-2. **如果 CLI 也不对** → 回到第 2-4 章重新配置
+#### 4. Bot 回复了，但内容不对
 
-3. **如果 CLI 正常但 Telegram 不对** → 检查是否有特定于 channel 的配置冲突
+这说明平台连接和访问控制已经通过，应回到更小的 CLI 路径复现：
+
+```bash
+nanobot agent -m "测试消息"
+```
+
+如果 CLI 也失败，检查命名 `modelPresets`、Provider 环境变量和工作区；如果只有 Telegram 失败，再比较两个入口使用的会话和工作区。
 
 ---
 
@@ -470,29 +429,57 @@ sudo journalctl -u nanobot -f
 
 ## 5.8 进阶：接入其他平台
 
-nanobot 支持多个平台同时运行。
+nanobot 可以在同一个 Gateway 中同时运行多个 Channel。每增加一个平台，都重复执行“环境变量 → 配置 → `channels status` → 私聊验证”，不要一次开放所有群组。
 
 ### Discord
 
 <details>
 <summary>点击展开：Discord 配置</summary>
 
+#### 1. 创建应用并启用 Intent
+
+1. 打开 [Discord Developer Portal](https://discord.com/developers/applications)，创建应用并添加 Bot。
+2. 在 **Bot → Privileged Gateway Intents** 中启用 **Message Content Intent**。否则 Bot 能连上 Gateway，却读不到普通消息正文。
+3. 开启 Discord 的开发者模式，复制自己的 User ID；需要限制服务器频道时也复制 Channel ID。
+4. 保存 Bot Token：
+
+```bash
+export DISCORD_BOT_TOKEN='从 Discord Developer Portal 获得的 Token'
+```
+
+#### 2. 配置 nanobot
+
 ```json
 {
   "channels": {
     "discord": {
       "enabled": true,
-      "token": "你的Discord Bot Token",
-      "allowFrom": ["Discord用户ID"]
+      "token": "${DISCORD_BOT_TOKEN}",
+      "allowFrom": ["123456789012345678"],
+      "allowChannels": [],
+      "groupPolicy": "mention",
+      "streaming": true
     }
   }
 }
 ```
 
-获取 Discord Bot Token：
-1. 访问 https://discord.com/developers/applications
-2. 创建新应用
-3. 在 Bot 标签页获取 Token
+- `allowFrom` 使用 Discord User ID，并同时约束私聊和服务器消息。
+- `allowChannels` 为空时表示不过滤频道，便于先完成私聊验证。共享服务器上线前应改成测试频道 ID 清单；该过滤也作用于私聊，因此若仍需私聊，还要包含对应 DM Channel ID。允许父频道也会允许其 Thread 或 Forum 帖子。
+- `groupPolicy: "mention"` 只在被 `@` 时响应；`"open"` 会处理频道内的每条可见消息，只适合明确隔离的服务器。
+
+#### 3. 邀请并验证
+
+在 OAuth2 URL Generator 中选择 `bot`，至少授予发送消息和读取历史所需权限，再把 Bot 邀请到测试服务器。然后运行：
+
+```bash
+nanobot channels status
+nanobot gateway
+```
+
+先私聊测试，再到测试频道 `@Bot`。确认路径正常后收紧 `allowChannels`；若连接成功但消息内容为空，首先复查 Message Content Intent，而不是修改模型配置。
+
+配置字段可对照固定版本的 [`DiscordConfig`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/channels/discord.py)；Intent 的平台定义见 [Discord 官方 Gateway 文档](https://docs.discord.com/developers/events/gateway#message-content-intent)。
 
 </details>
 
@@ -503,19 +490,53 @@ nanobot 支持多个平台同时运行。
 <details>
 <summary>点击展开：Slack 配置</summary>
 
+Slack Channel 使用 Socket Mode，不要求公网回调地址，但需要两种不同的 Token：
+
+- `botToken`：安装到 Workspace 后得到的 `xoxb-...` Token，用来调用 Web API。
+- `appToken`：启用 Socket Mode 后得到的 `xapp-...` App-Level Token，需要 `connections:write` scope。
+
+#### 1. 创建并配置 Slack App
+
+1. 在 [Slack App 管理页](https://api.slack.com/apps)创建 App。
+2. 开启 Socket Mode，生成 App-Level Token。
+3. 添加 Bot scopes：至少包括 `chat:write`、`app_mentions:read`，并为实际订阅的私聊或频道消息添加相应 history scope；需要文件能力时再增加 `files:read` 或 `files:write`。
+4. 在 Event Subscriptions 中按场景订阅 `message.im`、`message.channels` 和 `app_mention`，然后重新安装 App 到 Workspace。
+5. 分别保存两个 Token：
+
+```bash
+export SLACK_BOT_TOKEN='xoxb-...'
+export SLACK_APP_TOKEN='xapp-...'
+```
+
+#### 2. 配置 nanobot
+
 ```json
 {
   "channels": {
     "slack": {
       "enabled": true,
-      "token": "你的Slack Bot Token",
-      "allowFrom": ["Slack用户ID"]
+      "botToken": "${SLACK_BOT_TOKEN}",
+      "appToken": "${SLACK_APP_TOKEN}",
+      "dm": {
+        "enabled": true,
+        "policy": "allowlist",
+        "allowFrom": ["U0123456789"]
+      },
+      "groupPolicy": "mention"
     }
   }
 }
 ```
 
-Slack 配置相对复杂，建议参考官方文档。
+Slack 的私聊和群组策略是分开的：
+
+- `dm.policy` 默认为 `open`。教程改为 `allowlist`，并在嵌套的 `dm.allowFrom` 中填写 Slack User ID。
+- `groupPolicy: "mention"` 只响应 `@Bot`。
+- 若使用 `groupPolicy: "allowlist"`，还要配置 `groupAllowFrom`；设置 `groupRequireMention: true` 可同时要求频道在清单中且消息提及 Bot。
+
+最后运行 `nanobot channels status`，确认 Slack 已启用，再启动 Gateway。若 REST 认证成功但 Socket Mode 连接失败，应检查到 Slack WebSocket 的出站网络，而不是把 `appToken` 填进 `botToken`。
+
+配置字段可对照固定版本的 [`SlackConfig`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/channels/slack.py)，平台连接方式见 [Slack 官方 Socket Mode 文档](https://docs.slack.dev/apis/events-api/using-socket-mode/)。
 
 </details>
 
@@ -528,6 +549,9 @@ Slack 配置相对复杂，建议参考官方文档。
 | 能力 | 状态 |
 |------|------|
 | 在 Telegram 上和 Bot 对话 | ✅ |
+| 能检查 Channel 插件和启用状态 | ✅ |
+| 能审批和撤销 Telegram 配对 | ✅ |
+| 理解 Discord 与 Slack 的群组策略 | ✅ |
 | Bot 风格符合配置文件定义 | ✅ |
 | Skill 能正常触发 | ✅ |
 | 理解 Gateway 和 MessageBus 的作用 | ✅ |
