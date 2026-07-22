@@ -1,6 +1,9 @@
 # 诊断脚本集合
 
-这个目录包含用于诊断 nanobot 环境和配置的实用脚本。
+这个目录说明仓库根 `scripts/` 下的本地诊断脚本。请从仓库根目录运行；脚本不调用模型或真实 Channel。
+
+!!! warning "不要把诊断变成泄密"
+    `check-env.sh` 和 `verify-config.sh` 不输出凭据值。`check-skill.sh` 会预览目标 `SKILL.md` 的开头，因此 Skill 文件本身也不应保存密钥、Token 或个人数据。
 
 ## 📋 可用脚本
 
@@ -24,7 +27,7 @@ bash scripts/check-env.sh
 
 ### 2. verify-config.sh - 配置验证
 
-验证 `~/.nanobot/config.json` 的格式和内容。
+验证 `~/.nanobot/config.json` 的格式和必要结构，但不打印 Provider 或 Channel 凭据。
 
 **用法：**
 ```bash
@@ -34,9 +37,10 @@ bash scripts/verify-config.sh
 **检查项目：**
 - 配置文件是否存在
 - JSON 格式是否正确
-- providers 配置
-- agents.defaults 配置
+- Provider 名称与活动 model preset
+- 命名 `modelPresets` 或兼容 provider/model 配置
 - 工作区目录和关键文件
+- `nanobot status`（已安装时）
 
 ---
 
@@ -46,9 +50,6 @@ bash scripts/verify-config.sh
 
 **用法：**
 ```bash
-bash scripts/check-skill.sh <skill-name>
-
-# 示例
 bash scripts/check-skill.sh exchange-rate
 ```
 
@@ -68,11 +69,11 @@ bash scripts/check-skill.sh exchange-rate
 # 1. 检查环境
 bash scripts/check-env.sh
 
-# 2. 安装 nanobot（如果未安装）
-pip install nanobot-ai
+# 2. 安装教程固定版本（如果未安装）
+python -m pip install "nanobot-ai==0.2.2"
 
-# 3. 初始化配置
-nanobot onboard
+# 3. 用向导初始化配置
+nanobot onboard --wizard
 
 # 4. 验证配置
 bash scripts/verify-config.sh
@@ -90,7 +91,7 @@ bash scripts/check-env.sh
 bash scripts/verify-config.sh
 
 # 3. 如果 Skill 不触发 → 检查 Skill
-bash scripts/check-skill.sh <skill-name>
+bash scripts/check-skill.sh exchange-rate
 ```
 
 ---
@@ -98,10 +99,7 @@ bash scripts/check-skill.sh <skill-name>
 ## 📝 注意事项
 
 1. **Windows 用户：** 使用 Git Bash 或 WSL 运行这些脚本
-2. **权限问题：** 如果遇到权限错误，确保脚本有执行权限
-   ```bash
-   chmod +x scripts/*.sh
-   ```
+2. **运行方式：** 文档统一使用 `bash scripts/<name>.sh`，不要求给文件增加可执行位
 3. **依赖工具：** `verify-config.sh` 需要 `jq` 工具
    ```bash
    # macOS
@@ -110,9 +108,11 @@ bash scripts/check-skill.sh <skill-name>
    # Ubuntu/Debian
    sudo apt install jq
 
-   # Windows (Git Bash)
-   # 从 https://stedolan.github.io/jq/download/ 下载
+   # Windows (Git Bash / WSL)
+   # 使用系统包管理器安装 jq
    ```
+
+4. **配置修改：** 脚本只诊断，不会重写 `config.json`。发现问题后优先回到 `nanobot onboard --wizard` 或 WebUI；不要用教程片段覆盖完整配置。
 
 ---
 
@@ -120,7 +120,7 @@ bash scripts/check-skill.sh <skill-name>
 
 - [第 0 章：开始之前](../zero/00-before-you-start.md) - 环境准备
 - [第 1 章：5 分钟跑起来](../zero/01-quick-start.md) - 快速开始
-- [附录：统一排障手册](../appendix/troubleshooting-guide.md) - 系统化排障
+- [附录：统一排障手册](../appendix/troubleshooting-guide.md) - 唯一完整的系统化排障正文
 
 ---
 

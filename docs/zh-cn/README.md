@@ -99,15 +99,15 @@ flowchart LR
 
 适合程序员。按顺序阅读：
 
-| 章节 | 代码量 | 你将构建 | 对应 nanobot 模块 |
-|------|--------|---------|------------------|
-| [导读](hero/README.md) | 0 | 理解教学目标 | 整体架构 |
-| [第 1 章](hero/01-simplest-agent.md) | ~40 行 | 能对话的 LLM 客户端 | `providers/` |
-| [第 2 章](hero/02-tool-system.md) | ~200 行 | 能执行命令的 Agent | `agent/tools/`, `agent/loop.py` |
-| [第 3 章](hero/03-memory-and-context.md) | ~300 行 | 有记忆、有个性的 Agent | `agent/context.py`, `session/` |
-| [第 4 章](hero/04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
-| [第 5 章](hero/05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py` |
-| [第 6 章](hero/06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版走向可维护项目 | 工程化边界 |
+| 章节 | 核心增量 | 你将构建 | 对应 nanobot 模块 |
+|------|----------|---------|------------------|
+| [导读](hero/README.md) | 阅读边界 | 理解教学目标 | 整体架构 |
+| [第 1 章](hero/01-simplest-agent.md) | Provider 请求 + 消息历史 | 能对话的 LLM 客户端 | `providers/` |
+| [第 2 章](hero/02-tool-system.md) | Tool schema + 迭代循环 | 能调用受限工具的 Agent | `agent/tools/`, `agent/runner.py` |
+| [第 3 章](hero/03-memory-and-context.md) | Session + Context + Memory | 有记忆、有个性的 Agent | `agent/context.py`, `session/` |
+| [第 4 章](hero/04-message-bus.md) | MessageBus + Channel | 能接入多平台的 Agent | `bus/`, `channels/` |
+| [第 5 章](hero/05-skills-and-beyond.md) | Skills 摘要 + 按需加载 | 可动态扩展的完整 Agent | `agent/skills.py` |
+| [第 6 章](hero/06-from-mini-agent-to-real-bot.md) | 工程化边界 | 从教学版走向可维护项目 | 安全、并发、重试 |
 
 **配套资料：**
 - [进阶营配套示例代码](examples/hero/README.md)
@@ -118,8 +118,8 @@ flowchart LR
 ## 附录资源
 
 - [环境预检](appendix/environment-precheck.md) - 安装前的系统检查
-- [统一排障手册](appendix/troubleshooting-guide.md) - 常见问题解决方案
-- [常见坑与排障](appendix/troubleshooting.md) - 典型问题案例
+- [统一排障手册](appendix/troubleshooting-guide.md) - 唯一完整的分层诊断与解决步骤
+- [排障快速索引](appendix/troubleshooting.md) - 按症状跳转到统一手册
 - [术语表](appendix/glossary.md) - 关键概念速查
 
 ---

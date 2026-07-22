@@ -362,11 +362,15 @@ v0.2.2 的 [`builtin command router`](https://github.com/HKUDS/nanobot/blob/e2e7
 
 带着这 3 个职责去看代码，会比直接从头扫到尾轻松很多。为保持示例可独立阅读，下面的教学 Agent 只实现 Session、Context Builder 和 MemoryStore；生产版的异步 Dream 生命周期应继续交给 nanobot。
 
+!!! danger "下面的合并代码只用于对照职责"
+    它复用了第 2 章的宽权限 Shell/文件工具，没有生产沙箱。不要在真实工作区运行这个代码块；实际练习请使用[加固后的配套示例](../examples/hero/ch03-mini-agent-with-memory.py)，它默认创建临时工作区并拒绝路径越界与危险命令。
+
 ```python
 """mini_agent.py — 带记忆和个性的教学 Agent"""
 
 import asyncio
 import json
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -376,12 +380,11 @@ from typing import Any
 from openai import OpenAI
 
 # ── 配置 ─────────────────────────────────────────────
-API_BASE  = "https://openrouter.ai/api/v1"
-API_KEY   = "sk-or-v1-你的密钥"
-MODEL     = "your-provider-supported-model"
-WORKSPACE = Path("~/.mini-agent/workspace").expanduser()
+API_BASE  = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+MODEL     = os.environ.get("OPENROUTER_MODEL", "your-provider-supported-model")
+WORKSPACE = Path(os.environ["NANOBOT_HERO_WORKSPACE"]).expanduser().resolve()
 
-client = OpenAI(base_url=API_BASE, api_key=API_KEY)
+client = OpenAI(base_url=API_BASE, api_key=os.environ["OPENROUTER_API_KEY"])
 
 # ── 初始化工作区 ─────────────────────────────────────
 def init_workspace():
@@ -584,6 +587,7 @@ async def agent_loop(messages: list[dict], tools: ToolRegistry) -> str:
 # ── 主程序 ───────────────────────────────────────────
 
 async def main():
+    print("[安全提示] 这是架构教学版，不是生产沙箱；仅在专用练习目录运行。")
     init_workspace()
     print(f"Mini Agent (workspace: {WORKSPACE})\n输入 exit 退出 | 输入 /new 清空会话\n")
 
@@ -629,7 +633,9 @@ if __name__ == "__main__":
 ## 试一试
 
 ```bash
-python mini_agent.py
+export NANOBOT_HERO_WORKSPACE="${PWD}/.nanobot-hero-workspace"
+export OPENROUTER_MODEL="your-provider-supported-model"
+python docs/zh-cn/examples/hero/ch03-mini-agent-with-memory.py
 
 # 第一次运行
 You: 记住我叫小明，我喜欢用 Python
@@ -639,7 +645,7 @@ You: 我叫什么名字？
 Bot: 你叫小明，你喜欢用 Python。
 ```
 
-编辑 `~/.mini-agent/workspace/SOUL.md` 改成任何你想要的风格，下次对话自动生效。
+编辑 `${NANOBOT_HERO_WORKSPACE}/SOUL.md` 改成任何你想要的风格，下次对话自动生效。该目录只应放教学数据，练习完成后自行清理。
 
 ## 关键对比
 

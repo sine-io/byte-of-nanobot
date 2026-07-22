@@ -74,6 +74,9 @@ nanobot v0.2.2 的 [`Tool` 基类](https://github.com/HKUDS/nanobot/blob/e2e75c9
 
 ### exec 工具——执行 Shell 命令
 
+!!! danger "这里只展示工具调用主线，不要复制运行"
+    黑名单挡不住 Shell 组合语法，`create_subprocess_shell` 也不能限制绝对路径、符号链接或网络访问。下面三个工具只用于看懂接口；可运行练习请使用[加固后的配套示例](../examples/hero/ch02-mini-agent-with-tools.py)，它使用临时工作区、无 Shell 参数执行和只读命令白名单。即使如此，教学防护也不是生产沙箱。
+
 ```python
 import asyncio
 
@@ -349,11 +352,15 @@ flowchart LR
 
 把以上所有部分组合起来：
 
+!!! danger "完整代码块仍是架构讲解版"
+    它保留了上面的宽权限 Shell/文件工具，不能直接用于真实目录或不受信任输入。实际运行请使用本章末尾的加固配套文件；该文件会在入口显示安全警告，并拒绝工作区越界。
+
 ```python
 """mini_agent.py — 带工具系统的教学 Agent"""
 
 import asyncio
 import json
+import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -361,11 +368,10 @@ from typing import Any
 from openai import OpenAI
 
 # ── 配置 ─────────────────────────────────────────────
-API_BASE = "https://openrouter.ai/api/v1"
-API_KEY  = "sk-or-v1-你的密钥"
-MODEL    = "your-provider-supported-model"
+API_BASE = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+MODEL    = os.environ.get("OPENROUTER_MODEL", "your-provider-supported-model")
 
-client = OpenAI(base_url=API_BASE, api_key=API_KEY)
+client = OpenAI(base_url=API_BASE, api_key=os.environ["OPENROUTER_API_KEY"])
 
 # ── 工具基类 ─────────────────────────────────────────
 
@@ -533,6 +539,7 @@ async def agent_loop(messages: list[dict], tools: ToolRegistry) -> str:
 # ── 主程序 ───────────────────────────────────────────
 
 async def main():
+    print("[安全提示] 这是宽权限架构教学版，不是生产沙箱；不要用于真实目录。")
     print("Mini Agent with Tools (输入 exit 退出)\n")
 
     tools = ToolRegistry()
@@ -559,7 +566,8 @@ if __name__ == "__main__":
 ## 试一试
 
 ```bash
-python mini_agent.py
+export OPENROUTER_MODEL="your-provider-supported-model"
+python docs/zh-cn/examples/hero/ch02-mini-agent-with-tools.py
 ```
 
 ```
@@ -567,13 +575,13 @@ You: 当前目录下有哪些文件？
   [Tool] exec({"command": "ls -la"})
 Bot: 当前目录下有以下文件：...
 
-You: 帮我写一个 hello.py
-  [Tool] write_file({"path": "hello.py", "content": "print('Hello, World!')"})
-Bot: 已经创建了 hello.py，内容是一个简单的 Hello World 程序。
+You: 帮我写一个 hello.txt
+  [Tool] write_file({"path": "hello.txt", "content": "Hello, World!"})
+Bot: 已经创建了 hello.txt。
 
-You: 运行它
-  [Tool] exec({"command": "python hello.py"})
-Bot: 运行结果：Hello, World!
+You: 读取它
+  [Tool] exec({"command": "cat hello.txt"})
+Bot: 文件内容是：Hello, World!
 ```
 
 **它能做事了！** 从"聊天机器人"升级成了"AI Agent"。
@@ -610,7 +618,7 @@ Bot: 运行结果：Hello, World!
 
 1. 问一个不需要工具的问题，确认模型能直接回答
 2. 问一个明显需要命令行的问题，比如“当前目录下有哪些文件？”
-3. 让它写一个简单文件，再读取或运行它
+3. 使用加固配套示例，让它在临时教学工作区写一个简单文件，再读取它
 4. 故意让它执行一个会失败的命令，观察错误是否能回传给模型
 
 你应该观察到的现象：

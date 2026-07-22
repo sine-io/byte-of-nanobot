@@ -1,6 +1,6 @@
 # 第 1 章：最简 Agent
 
-> 用 40 行代码写一个能对话的 AI。
+> 用最小消息循环写一个能对话的 AI。
 
 ## 本章目标
 
@@ -18,13 +18,13 @@
 
 ---
 
-## 为什么从 40 行开始？
+## 为什么从最小循环开始？
 
-**问题：** 一个能对话的 AI Agent 最少需要多少代码？
+**问题：** 一个能对话的 AI Agent 最少需要哪些职责？
 
-**答案：** 40 行就够了。
+**答案：** Provider 连接、消息历史和交互循环。
 
-这 40 行代码包含了 Agent 的最核心要素：
+下面的代码只保留三个核心要素：
 1. 连接 LLM
 2. 管理对话历史
 3. 多轮交互
@@ -36,18 +36,16 @@
 ## 完整代码
 
 ```python
-"""mini_agent.py — 最简 Agent，40 行"""
+"""mini_agent.py — 最简教学 Agent"""
 
+import os
 from openai import OpenAI
 
 # 连接 LLM（OpenAI 兼容接口）
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",  # 换成你的 provider
-    api_key="sk-or-v1-你的密钥",               # 换成你的 key
-)
-MODEL = "openai/gpt-4-turbo"                   # 换成你的模型
+API_BASE = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+MODEL = os.environ.get("OPENROUTER_MODEL", "your-provider-supported-model")
 
-def chat(messages: list[dict]) -> str:
+def chat(client: OpenAI, messages: list[dict]) -> str:
     """调用 LLM，返回回复文本。"""
     response = client.chat.completions.create(
         model=MODEL,
@@ -57,6 +55,8 @@ def chat(messages: list[dict]) -> str:
     return response.choices[0].message.content or ""
 
 def main():
+    print("[安全提示] 教学示例会把输入发送给配置的模型服务；不要输入敏感数据。")
+    client = OpenAI(base_url=API_BASE, api_key=os.environ["OPENROUTER_API_KEY"])
     print("Mini Agent (输入 exit 退出)\n")
 
     messages = [
@@ -69,7 +69,7 @@ def main():
             break
 
         messages.append({"role": "user", "content": user_input})
-        reply = chat(messages)
+        reply = chat(client, messages)
         messages.append({"role": "assistant", "content": reply})
         print(f"\nBot: {reply}\n")
 
@@ -79,6 +79,8 @@ if __name__ == "__main__":
 
 运行：
 ```bash
+test -n "${OPENROUTER_API_KEY}" || echo "请先在当前 Shell 设置 OPENROUTER_API_KEY"
+export OPENROUTER_MODEL="your-provider-supported-model"
 python mini_agent.py
 ```
 
@@ -124,9 +126,9 @@ messages = [
 
 ## 对应 nanobot 的什么？
 
-这 40 行代码对应 nanobot 中的两个核心模块：
+这段最小代码对应 nanobot 中的两个核心模块：
 
-### 1. Provider（`nanobot/providers/`）
+### 1. Provider（[`nanobot/providers/`](https://github.com/HKUDS/nanobot/tree/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/providers)）
 
 我们的 `chat()` 函数 = nanobot 的 Provider
 
@@ -153,7 +155,7 @@ class LLMProvider(ABC):
 
 ---
 
-### 2. Session（`nanobot/session/manager.py`）
+### 2. Session（[`nanobot/session/manager.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/session/manager.py)）
 
 我们的 `messages` 列表 = nanobot 的 Session
 
@@ -181,7 +183,7 @@ class Session:
 
 ## 局限性（为什么需要后续章节）
 
-这个 40 行的 Agent 只能**聊天**。它不能：
+这个最小 Agent 只能**聊天**。它不能：
 
 | 不能做的事 | 原因 | 哪一章解决 |
 |-----------|------|-----------|
@@ -196,7 +198,7 @@ class Session:
 
 运行代码前，先确认：
 - [ ] 已安装 `openai` 库：`pip install openai`
-- [ ] 已配置正确的 `base_url`、`api_key`、`MODEL`
+- [ ] 已在当前 Shell 设置 `OPENROUTER_API_KEY` 和 Provider 支持的 `OPENROUTER_MODEL`
 
 运行后，验证：
 
@@ -236,7 +238,7 @@ You: exit
 
 ## 本章你真正学到的抽象
 
-这一章最重要的不是 40 行代码本身，而是两个基础抽象：
+这一章最重要的不是代码行数，而是两个基础抽象：
 
 1. **Provider**：负责把 `messages` 发给模型，再把回复取回来
 2. **Session**：一组按顺序累积的消息历史
