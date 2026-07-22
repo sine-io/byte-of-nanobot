@@ -298,86 +298,156 @@ nanobot agent -m "测试消息"
 
 ## 5.6 保持 Gateway 持续运行
 
-现在 Gateway 能工作了，但有个问题：**关闭终端窗口后，Gateway 就停止了。**
+前台运行适合首次连接；确认功能正常后，再从下面三种方式中选择一种。不要同时启动前台、后台和系统服务，否则会争用同一个 Channel 或端口。
 
-### 方案 A：使用 screen 或 tmux（临时方案）
+### 方案 A：内置后台进程
+
+这是从终端切换到后台的最短路径，Linux、macOS 和 Windows 都可用：
 
 ```bash
-# 使用 screen
-screen -S nanobot
-nanobot gateway
-# 按 Ctrl+A 然后按 D 来 detach
-
-# 重新连接
-screen -r nanobot
-
-# 使用 tmux
-tmux new -s nanobot
-nanobot gateway
-# 按 Ctrl+B 然后按 D 来 detach
-
-# 重新连接
-tmux attach -t nanobot
+nanobot gateway --background
+nanobot gateway status
+nanobot gateway logs --no-follow
+nanobot gateway logs
+nanobot gateway restart
+nanobot gateway stop
 ```
 
----
+`logs` 默认持续跟随，按 `Ctrl+C` 只会退出日志查看，不会停止 Gateway。自定义实例必须在每条管理命令中使用相同的 `--config` 和 `--workspace`，否则会查看或停止另一个实例。
 
-### 方案 B：使用 systemd（推荐用于 Linux 服务器）
+后台子进程继承启动命令当时的环境。配置使用 `${TELEGRAM_BOT_TOKEN}` 等占位符时，执行 `--background` 或 `restart` 的终端必须已经导出对应变量。
+
+### 方案 B：安装系统用户服务
+
+需要登录后自动启动和失败重启时，优先使用 v0.2.2 的内置安装器。Linux 自动生成 systemd **用户服务**，macOS 自动生成 LaunchAgent：
+
+```bash
+# 先预览文件路径、内容和将执行的命令
+nanobot gateway install-service --dry-run
+
+# 安装、启用并立即启动
+nanobot gateway install-service
+
+# 不再需要时卸载
+nanobot gateway uninstall-service
+```
+
+安装器使用当前 Python 解释器，并让系统监督前台 Gateway；不要在 service 中再加 `--background`。自定义实例可以固定名称和路径：
+
+```bash
+nanobot gateway install-service \
+  --name nanobot-telegram \
+  --config ~/.nanobot/config.json \
+  --workspace ~/.nanobot/workspace
+```
+
+!!! warning "系统服务需要单独注入密钥"
+    生成的 systemd unit 或 LaunchAgent 不会把当前 shell 中的 Token 自动写进去。应使用操作系统的凭据管理或仅当前用户可读的环境文件，并在安装前通过 `--dry-run` 检查最终服务；不要把真实 Token 直接写进公开 unit、命令历史或仓库。
+
+Linux 用户服务通常随登录会话运行。服务器需要注销后继续运行时，可由系统管理员评估是否启用 user lingering：
+
+```bash
+loginctl enable-linger "$USER"
+```
 
 <details>
-<summary>点击展开：systemd 配置</summary>
+<summary>高级回退：手工维护 systemd</summary>
 
-**1. 创建 service 文件**
+只有内置 `install-service` 无法满足发行版或运维规范时，才手工维护 unit。先用 `nanobot gateway install-service --manager systemd --dry-run` 取得与当前版本一致的模板，再在 `~/.config/systemd/user/` 中审查和扩展；不要从教程复制到 `/etc/systemd/system/` 后以 root 运行。
 
-```bash
-sudo nano /etc/systemd/system/nanobot.service
-```
-
-**2. 填入以下内容**
-
-```ini
-[Unit]
-Description=Nanobot Gateway
-After=network.target
-
-[Service]
-Type=simple
-User=你的用户名
-WorkingDirectory=/home/你的用户名
-ExecStart=/home/你的用户名/.venv/bin/nanobot gateway
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**3. 启用并启动服务**
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable nanobot
-sudo systemctl start nanobot
-
-# 查看状态
-sudo systemctl status nanobot
-
-# 查看日志
-sudo journalctl -u nanobot -f
-```
+至少保留非 root 用户、前台 `python -m nanobot gateway --foreground`、`NoNewPrivileges=yes`、明确的工作目录和受限权限。手工 unit 属于高级运维回退，本教程不再把它作为默认安装路径。
 
 </details>
 
----
-
-### 方案 C：使用 Docker（最灵活）
+### 方案 C：从源码构建 Docker 镜像
 
 <details>
-<summary>点击展开：Docker 配置</summary>
+<summary>点击展开：Docker 部署</summary>
 
-**待补充：** Docker 部署方案会在后续版本中详细说明。
+官方 v0.2.2 没有要求信任第三方镜像命名空间；在 nanobot v0.2.2 源码检出目录中，用仓库自带 `Dockerfile` 构建：
 
-如果你熟悉 Docker，可以参考 nanobot 官方文档中的 Docker 部署指南。
+```bash
+git checkout e2e75c913f3524d4bc5b23487a4eed5329eef182
+sudo docker build --pull -t nanobot:v0.2.2 .
+```
+
+镜像内进程默认使用非 root 用户 `nanobot`（UID 1000），配置和状态目录是 `/home/nanobot/.nanobot`。在宿主机准备私有目录和不进 Git 的环境文件：
+
+```bash
+mkdir -p ~/.nanobot ~/.config/nanobot
+chmod 700 ~/.nanobot ~/.config/nanobot
+test -e ~/.config/nanobot/nanobot.env || install -m 600 /dev/null ~/.config/nanobot/nanobot.env
+chmod 600 ~/.config/nanobot/nanobot.env
+nano ~/.config/nanobot/nanobot.env
+```
+
+环境文件使用 `NAME=value`，不要写 `export`：
+
+```text
+PROVIDER_API_KEY=替换为真实值
+TELEGRAM_BOT_TOKEN=替换为真实值
+NANOBOT_WEBUI_PASSWORD=替换为高强度随机值
+```
+
+容器端口转发无法访问容器自身的 `127.0.0.1`。因此容器内的 Gateway 和 WebSocket 需要监听 `0.0.0.0`，同时在宿主机侧只发布到 `127.0.0.1`：
+
+```json
+{
+  "gateway": {
+    "host": "0.0.0.0"
+  },
+  "channels": {
+    "websocket": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 8765,
+      "tokenIssueSecret": "${NANOBOT_WEBUI_PASSWORD}",
+      "websocketRequiresToken": true
+    }
+  },
+  "tools": {
+    "restrictToWorkspace": true,
+    "exec": {
+      "sandbox": "bwrap"
+    },
+    "ssrfWhitelist": []
+  }
+}
+```
+
+WebUI 是 `8765`，Gateway 健康检查是 `18790`。以后台容器启动：
+
+```bash
+sudo docker run -d \
+  --name nanobot-gateway \
+  --restart unless-stopped \
+  --env-file ~/.config/nanobot/nanobot.env \
+  --cap-drop ALL \
+  --cap-add SYS_ADMIN \
+  --security-opt apparmor=unconfined \
+  --security-opt seccomp=unconfined \
+  -v ~/.nanobot:/home/nanobot/.nanobot \
+  -p 127.0.0.1:18790:18790 \
+  -p 127.0.0.1:8765:8765 \
+  nanobot:v0.2.2 gateway
+
+sudo docker logs -f nanobot-gateway
+sudo docker stop nanobot-gateway
+```
+
+`SYS_ADMIN` 与两个 unconfined 选项用于让容器内的 bubblewrap 创建命名空间，但也扩大了容器权限。如果禁用 shell 工具或不使用 `tools.exec.sandbox: "bwrap"`，不要照抄这些三项；保留 `--cap-drop ALL`，并按实际功能做一次离线验证。不要用 `--user root` 绕过挂载权限，应让宿主机挂载目录对 UID 1000 可读写，或经过评估后用 `--user "$(id -u):$(id -g)"` 显式映射。
+
+如果使用仓库自带 Compose 文件，也要给 Gateway 配置环境文件，并把宿主机发布地址限制为 `127.0.0.1`。随后使用：
+
+```bash
+sudo docker compose up -d nanobot-gateway
+sudo docker compose logs -f nanobot-gateway
+sudo docker compose down
+```
+
+只有需要从其他设备访问 WebUI 时，才把宿主机的 `127.0.0.1:8765` 改成局域网监听地址；此时必须保留 Token 认证，并在不可信网络前增加 TLS 反向代理和防火墙规则。
+
+固定实现可对照 v0.2.2 的 [`Dockerfile`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/Dockerfile) 与 [`docker-compose.yml`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/docker-compose.yml)。
 
 </details>
 
@@ -385,45 +455,57 @@ sudo journalctl -u nanobot -f
 
 ## 5.7 安全建议
 
-在正式使用前，确认这些安全设置：
+`SOUL.md` 或对话中的“不要执行危险命令”只是模型可见的行为约束，不是硬安全边界。把来自 Channel 的任何输入都视为不可信，并叠加身份、文件、进程、网络和操作系统控制。
 
-### 检查清单
+| 层次 | v0.2.2 控制 | 边界 |
+|---|---|---|
+| 身份 | `allowFrom`、配对、群组策略、WebSocket Token | 决定谁能发起请求，不限制已授权用户要求 Bot 做什么 |
+| 文件 | `tools.restrictToWorkspace: true` | 对工作区感知工具做应用级路径限制，不是 OS 沙箱 |
+| 命令 | `tools.exec.sandbox: "bwrap"`，或关闭 `exec` | bubblewrap 仅支持 Linux；容器内还需要相应内核能力 |
+| 网络 | 默认 SSRF 检查和最小化 `ssrfWhitelist` | 保护内网、回环和 metadata 目标，不等于完整出站防火墙 |
+| 凭据 | `${ENV_NAME}`、权限为 `600` 的环境文件、定期轮换 | 避免写入 Git，但仍需防止日志、进程环境和备份泄露 |
 
-- [ ] **限制白名单**：`allowFrom` 只包含你信任的用户
-- [ ] **限制工作区**：`tools.restrictToWorkspace` 设为 `true`
-- [ ] **保护 Token**：不要把 `config.json` 提交到公开的 Git 仓库
-- [ ] **监控日志**：定期查看 Gateway 日志，发现异常访问
-- [ ] **API Key 额度**：设置 LLM API 的消费上限
-
-### 特别提醒
+Linux 主机或已按上一节配置 bubblewrap 的容器可使用：
 
 ```json
-// ❌ 危险配置（不要在生产环境使用）
 {
-  "channels": {
-    "telegram": {
-      "allowFrom": ["*"]  // 任何人都能用！
-    }
-  },
   "tools": {
-    "restrictToWorkspace": false  // 可以访问系统任何文件！
+    "restrictToWorkspace": true,
+    "exec": {
+      "enable": true,
+      "sandbox": "bwrap",
+      "timeout": 60
+    },
+    "ssrfWhitelist": []
   }
 }
 ```
 
+不需要执行 shell 时，更小的攻击面是直接关闭工具：
+
 ```json
-// ✅ 安全配置
 {
-  "channels": {
-    "telegram": {
-      "allowFrom": ["123456789", "987654321"]  // 只允许特定用户
-    }
-  },
   "tools": {
-    "restrictToWorkspace": true  // 限制在工作区内
+    "restrictToWorkspace": true,
+    "exec": {
+      "enable": false
+    },
+    "ssrfWhitelist": []
   }
 }
 ```
+
+上线前逐项确认：
+
+- `allowFrom` 没有无意设置为 `["*"]`，群聊仍是 `mention` 或更严格策略。
+- Agent 与项目工作区只挂载必需目录；不要把整个宿主机主目录挂进容器。
+- `ssrfWhitelist` 默认为空。确需访问内网服务时只放行精确 CIDR，并同时限制目标服务身份和权限。
+- SSRF 检查不是通用防火墙；允许执行的 shell、第三方 MCP 或插件仍可能产生其他网络流量，应在主机或容器层限制出站访问。
+- Token 不出现在 Git、命令参数、截图和日志中；泄露后立即到平台撤销并重新生成。
+- Gateway、WebUI 和 API 只监听需要的接口；公网访问使用认证、TLS、反向代理和防火墙。
+- 容器保持非 root 运行，挂载目录、状态文件和备份只对运行账号开放。
+
+实现边界可对照固定版本的 [`workspace_policy.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/security/workspace_policy.py)、[`network.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/security/network.py) 和 [`gateway/service.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/gateway/service.py)。
 
 ---
 

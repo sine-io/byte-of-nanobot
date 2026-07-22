@@ -171,13 +171,16 @@ nanobot gateway
 /home/nanobot/.nanobot
 ```
 
-所以挂载应类似：
+先用一次性 `status` 命令确认挂载和环境文件，而不是直接暴露端口：
 
 ```bash
-docker run -v ~/.nanobot:/home/nanobot/.nanobot -p 18790:18790 nanobot gateway
+sudo docker run --rm \
+  --env-file ~/.config/nanobot/nanobot.env \
+  -v ~/.nanobot:/home/nanobot/.nanobot \
+  nanobot:v0.2.2 status
 ```
 
-如果你把宿主机目录挂到了 `/root/.nanobot`，新版本容器里的 nanobot 可能读不到配置。
+如果把宿主机目录挂到 `/root/.nanobot`，非 root 的 nanobot 用户会读不到配置。Gateway 的监听地址、认证、运行用户和 `18790`/`8765` 端口映射见[第 5 章的 Docker 部署](../zero/05-deploy-telegram.md#c-docker)。
 
 ## 6. 记忆文件和 Dream
 
