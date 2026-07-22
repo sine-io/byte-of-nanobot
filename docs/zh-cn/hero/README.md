@@ -8,18 +8,18 @@
 
 "听过不如看过，看过不如做过。"
 
-用 nanobot 只需要 5 分钟，但**理解** nanobot 需要自己造一个。这个教程会带你从一个 40 行的聊天脚本，逐步演进到一个完整的多平台 AI Agent——和 nanobot 走过的路一样。
+用 nanobot 只需要几分钟，但**理解** nanobot 需要自己造一个。这个教程会从最小聊天循环开始，逐步演进到一个完整的多平台 AI Agent。
 
 ## 教程目录
 
-| 章节 | 代码量 | 你将构建 | 对应 nanobot 模块 |
-|------|--------|---------|------------------|
-| [第 1 章：最简 Agent](01-simplest-agent.md) | ~40 行 | 能对话的 LLM 客户端 | `providers/` |
-| [第 2 章：工具系统](02-tool-system.md) | ~200 行 | 能执行命令、读写文件的 Agent | `agent/tools/`, `agent/loop.py` |
-| [第 3 章：记忆与上下文](03-memory-and-context.md) | ~300 行 | 有记忆、有人格的 Agent | `agent/context.py`, `agent/memory.py`, `session/` |
-| [第 4 章：消息总线](04-message-bus.md) | ~400 行 | 能接入多平台的 Agent | `bus/`, `channels/` |
-| [第 5 章：技能与扩展](05-skills-and-beyond.md) | ~500 行 | 可动态扩展的完整 Agent | `agent/skills.py`, `cron/` |
-| [第 6 章：从 Mini Agent 到真实项目](06-from-mini-agent-to-real-bot.md) | 架构桥接 | 从教学版过渡到可维护项目 | 工程化边界、安全、并发、重试 |
+| 章节 | 核心增量 | 你将构建 | 对应 nanobot 模块 |
+|------|----------|---------|------------------|
+| [第 1 章：最简 Agent](01-simplest-agent.md) | Provider 请求 + 消息历史 | 能对话的 LLM 客户端 | `providers/` |
+| [第 2 章：工具系统](02-tool-system.md) | Tool schema + 迭代循环 | 能调用受限工具的 Agent | `agent/tools/`, `agent/runner.py` |
+| [第 3 章：记忆与上下文](03-memory-and-context.md) | Session + Context + Memory | 有记忆、有人格的 Agent | `agent/context.py`, `agent/memory.py`, `session/` |
+| [第 4 章：消息总线](04-message-bus.md) | MessageBus + Channel | 能接入多平台的 Agent | `bus/`, `channels/` |
+| [第 5 章：技能与扩展](05-skills-and-beyond.md) | Skills 摘要 + 按需加载 | 可动态扩展的完整 Agent | `agent/skills.py`, `cron/` |
+| [第 6 章：从 Mini Agent 到真实项目](06-from-mini-agent-to-real-bot.md) | 工程化边界 | 从教学版过渡到可维护项目 | 安全、并发、重试 |
 
 ## 怎么读这一部分
 

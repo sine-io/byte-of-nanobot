@@ -340,9 +340,13 @@ CLIChannel.send()
 
 下面仍是本教程各片段的最小装配，不是 `nanobot gateway` 的源码复制。v0.2.2 的真实启动编排位于固定版本的 [`cli/commands.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/cli/commands.py)，还会初始化配置、ChannelManager、CronService、Heartbeat 等组件。
 
+!!! danger "装配示意不等于部署模板"
+    这段代码继承前章宽权限工具，也没有真实 Channel 的配对、ACL、重连和凭据管理。实际运行请使用[默认仅启用 CLI 的加固配套示例](../examples/hero/ch04-mini-agent-gateway.py)；生产部署使用 nanobot 自带 Gateway。
+
 ```python
 async def run_gateway():
     """启动教学版 Gateway。"""
+    print("[安全提示] 教学 Gateway 不是生产沙箱；不要连接不受信任用户。")
     init_workspace()
     bus = MessageBus()
 
@@ -359,7 +363,7 @@ async def run_gateway():
     # 启用 Channels
     channels: dict[str, BaseChannel] = {}
     channels["cli"] = CLIChannel(bus)
-    # channels["telegram"] = TelegramChannel(bus, token="YOUR_TOKEN", allow_from=["*"])
+    # 真实平台凭据、配对与 allowFrom 应交给 nanobot 配置，不写在教学代码里。
 
     print(f"Gateway started. Channels: {list(channels.keys())}\n")
 

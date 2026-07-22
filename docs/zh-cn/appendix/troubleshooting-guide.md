@@ -1,669 +1,400 @@
 # 统一排障手册
 
-> 目标：提供系统化的问题诊断和解决方案，按层级组织。
+> 按“环境 → 配置 → Agent 状态 → Skill → Channel/Gateway → 部署”的顺序缩小问题，避免同时改多个变量。
 
-## 使用说明
+!!! note "版本边界"
+    本手册的可执行命令以 nanobot **v0.2.2** 为准。固定的 `main@b189a376` 只用于教程中的差异说明；看到 main 独有结构时，不要直接套到稳定版安装上。
 
-本手册按**问题层级**组织，从底层到高层：
-1. **环境问题** → Python、依赖、网络
-2. **配置问题** → API Key、模型、路径
-3. **行为问题** → 人格、规则、Skill
-4. **部署问题** → Telegram、Docker、持续运行
+## 先做三件安全的事
 
-**如何使用：**
-1. 先判断你的问题属于哪一层
-2. 跳转到对应章节
-3. 按照诊断步骤逐一排查
-4. 如果问题仍未解决，在 GitHub Issues 提问
+1. 不要把 `config.json`、环境文件、完整日志或截图原样贴到 Issue。
+2. 不要用 `cat`、`grep`、`printenv` 等命令把凭据值打印出来。
+3. 不要为了“回到最小配置”直接覆盖现有配置；一次只改一个字段，并保留权限受限的本地备份，且不要把备份提交到版本库。
 
----
-
-## 第1层：环境问题
-
-### 症状识别
-
-- 命令不存在（`nanobot: command not found`）
-- 安装失败（`pip install` 报错）
-- 依赖缺失（`No module named 'xxx'`）
-- 网络连接问题
-
----
-
-### 问题 1.1：命令不存在
-
-**症状：**
-```bash
-$ nanobot --version
-bash: nanobot: command not found
-```
-
-**诊断步骤：**
+首轮诊断只运行本地、只读命令：
 
 ```bash
-# 1. 检查是否安装成功
-pip show nanobot-ai
-
-# 2. 检查虚拟环境
-which python
-# 应该输出类似：/path/to/.venv/bin/python
-
-# 3. 检查命令是否在虚拟环境中
-ls .venv/bin/ | grep nanobot
-```
-
-**解决方案：**
-
-| 情况 | 解决方案 |
-|------|---------|
-| `pip show` 找不到包 | 重新安装：`pip install nanobot-ai` |
-| 虚拟环境未激活 | 激活：`source .venv/bin/activate` (Linux/Mac) 或 `.venv\Scripts\activate` (Windows) |
-| 安装到了其他环境 | 确认 `which pip` 和 `which python` 属于同一环境 |
-
----
-
-### 问题 1.2：依赖安装失败
-
-**症状：**
-```bash
-$ pip install nanobot-ai
-ERROR: Could not find a version that satisfies the requirement...
-```
-
-**诊断步骤：**
-
-```bash
-# 1. 检查 Python 版本
-python --version
-# 需要 >= 3.11
-
-# 2. 检查 pip 版本
-pip --version
-
-# 3. 升级 pip
-python -m pip install --upgrade pip
-
-# 4. 检查网络连接
-ping pypi.org
-```
-
-**解决方案：**
-
-| 情况 | 解决方案 |
-|------|---------|
-| Python < 3.11 | 升级 Python 或使用 pyenv/conda 安装新版本 |
-| pip 版本过低 | `python -m pip install --upgrade pip` |
-| 网络问题 | 使用镜像源：`pip install -i https://pypi.tuna.tsinghua.edu.cn/simple nanobot-ai` |
-
----
-
-### 问题 1.3：缺少系统依赖
-
-**症状：**
-```bash
-# Skill 执行失败
-Error: curl: command not found
-Error: python3: command not found
-```
-
-**诊断步骤：**
-
-```bash
-# 检查常用依赖
-which curl
-which python3
-which git
-```
-
-**解决方案：**
-
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install curl python3 git
-
-# macOS
-brew install curl python3 git
-
-# Windows
-# 使用 Git Bash 或安装 WSL
-```
-
----
-
-## 第2层：配置问题
-
-### 症状识别
-
-- `401 Unauthorized`
-- `Model not found`
-- `Config file not found`
-- Bot 完全不回复
-
----
-
-### 问题 2.1：API Key 错误
-
-**症状：**
-```bash
-$ nanobot agent -m "test"
-Error: 401 Unauthorized
-```
-
-**诊断步骤：**
-
-```bash
-# 1. 检查配置文件是否存在
-ls -la ~/.nanobot/config.json
-
-# 2. 查看配置内容
-cat ~/.nanobot/config.json | grep -A 3 "apiKey"
-
-# 3. 验证 API Key 格式
-# OpenRouter: sk-or-v1-...
-# OpenAI: sk-...
-# DeepSeek: sk-...
-```
-
-**解决方案：**
-
-| 情况 | 解决方案 |
-|------|---------|
-| Key 复制不完整 | 重新复制完整的 Key，注意不要有空格 |
-| Key 过期 | 去 provider 控制台重新生成 |
-| Provider 不匹配 | 检查 `provider` 字段是否与 Key 匹配 |
-
----
-
-### 问题 2.2：模型名称错误
-
-**症状：**
-```bash
-Error: Model 'gpt-4' not found
-```
-
-**诊断步骤：**
-
-```bash
-# 1. 确认当前配置的 provider 和 model
-cat ~/.nanobot/config.json | grep -A 2 "defaults"
-
-# 2. 去 provider 文档查看正确的模型名称
-# OpenRouter: https://openrouter.ai/models
-# DeepSeek: deepseek-chat
-# OpenAI: gpt-4-turbo
-```
-
-**解决方案：**
-
-常见错误：
-
-| 错误配置 | 正确配置 | Provider |
-|---------|---------|----------|
-| `"model": "gpt-4"` | `"model": "openai/gpt-4-turbo"` | OpenRouter |
-| `"model": "deepseek"` | `"model": "deepseek-chat"` | DeepSeek |
-| `"model": "claude-3"` | `"model": "claude-3-opus-20240229"` | Anthropic |
-
----
-
-### 问题 2.3：工作区路径错误
-
-**症状：**
-```bash
-Error: Workspace not found
-```
-
-**诊断步骤：**
-
-```bash
-# 1. 检查工作区是否存在
-ls -la ~/.nanobot/workspace/
-
-# 2. 检查必要文件
-ls ~/.nanobot/workspace/*.md
-
-# 3. 重新初始化
-nanobot onboard
-```
-
-**解决方案：**
-
-如果工作区损坏或缺失，重新初始化：
-```bash
-# 备份现有配置（如果有）
-cp ~/.nanobot/config.json ~/config.json.backup
-
-# 重新初始化
-nanobot onboard
-
-# 恢复配置
-cp ~/config.json.backup ~/.nanobot/config.json
-```
-
----
-
-## 第3层：行为问题
-
-### 症状识别
-
-- Bot 能回复，但风格不对
-- 规则不生效
-- Skill 不触发
-- 工具调用失败
-
----
-
-### 问题 3.1：人格和规则不生效
-
-**症状：**
-修改了 `SOUL.md` 或 `AGENTS.md`，但回复风格没变化。
-
-**诊断步骤：**
-
-```bash
-# 1. 确认文件已保存
-cat ~/.nanobot/workspace/SOUL.md | head -20
-
-# 2. 确认文件路径正确
-ls -la ~/.nanobot/workspace/*.md
-
-# 3. 测试是否读取文件
-nanobot agent -m "请告诉我你的性格特点" --verbose
-```
-
-**可能原因：**
-
-| 原因 | 表现 | 解决方案 |
-|------|------|---------|
-| 文件未保存 | 内容没有变化 | 重新编辑并保存 |
-| 改动太弱 | 模型理解不到位 | 使用更明确、更极端的描述 |
-| 文件内容冲突 | 行为不一致 | 检查不同文件是否有矛盾的指令 |
-| 模型能力不足 | 复杂规则无法遵守 | 简化规则或换更强的模型 |
-
-**改进建议：**
-
-❌ **太抽象：**
-```markdown
-# SOUL.md
-- 专业、友好
-```
-
-✅ **具体明确：**
-```markdown
-# SOUL.md
-- 每次回复开头先说"让我想想..."
-- 用第一人称（"我认为"而不是"可以认为"）
-- 回复结尾用 🤔 emoji
-```
-
----
-
-### 问题 3.2：Skill 不触发
-
-**症状：**
-创建了 Skill，但 Bot 从不使用它。
-
-**诊断决策树：**
-
-```mermaid
-flowchart TD
-    start[Skill 不触发] --> q1{文件路径正确？}
-    q1 -- 否 --> fix1[应该是<br/>~/.nanobot/workspace/skills/skill-name/SKILL.md]
-    q1 -- 是 --> q2{frontmatter 正确？}
-    q2 -- 否 --> fix2[检查 name 和 description 字段]
-    q2 -- 是 --> q3{依赖满足？}
-    q3 -- 否 --> fix3[安装缺失的命令<br/>如 curl, python3]
-    q3 -- 是 --> q4{description 清晰？}
-    q4 -- 否 --> fix4[改进 description<br/>说明何时使用]
-    q4 -- 是 --> fix5[使用更明确的提问方式<br/>如"请用 XXX skill..."]
-```
-
-**快速诊断脚本：**
-
-```bash
-#!/bin/bash
-# check-skill.sh <skill-name>
-
-SKILL_NAME=$1
-SKILL_PATH=~/.nanobot/workspace/skills/$SKILL_NAME
-
-echo "=== Skill 诊断 ==="
-
-# 检查路径
-if [ -f "$SKILL_PATH/SKILL.md" ]; then
-    echo "✓ 文件存在"
-else
-    echo "✗ 文件不存在: $SKILL_PATH/SKILL.md"
-    exit 1
-fi
-
-# 检查 frontmatter
-if head -n 5 "$SKILL_PATH/SKILL.md" | grep -q "^name:"; then
-    echo "✓ 包含 name 字段"
-else
-    echo "✗ 缺少 name 字段"
-fi
-
-if head -n 5 "$SKILL_PATH/SKILL.md" | grep -q "^description:"; then
-    echo "✓ 包含 description 字段"
-else
-    echo "✗ 缺少 description 字段"
-fi
-
-echo ""
-echo "=== Frontmatter 内容 ==="
-sed -n '/^---$/,/^---$/p' "$SKILL_PATH/SKILL.md"
-```
-
-**使用方法：**
-```bash
-bash check-skill.sh exchange-rate
-```
-
----
-
-### 问题 3.3：工具调用失败
-
-**症状：**
-Skill 触发了，但执行时报错。
-
-**常见错误：**
-
-| 错误信息 | 原因 | 解决方案 |
-|---------|------|---------|
-| `curl: command not found` | 系统缺少 curl | `sudo apt install curl` (Linux) 或 `brew install curl` (Mac) |
-| `python3: command not found` | 系统缺少 python3 | 安装 Python 3.11+ |
-| `Permission denied` | 文件权限问题 | `chmod +x script.sh` |
-| `Connection timeout` | 网络问题 | 检查网络连接或使用代理 |
-
-**手动测试工具：**
-
-```bash
-# 测试 exec 工具
-nanobot agent -m "请执行命令：echo 'test'"
-
-# 测试 read_file 工具
-nanobot agent -m "请读取文件：~/.nanobot/workspace/SOUL.md"
-
-# 测试 web_search 工具
-nanobot agent -m "请搜索：nanobot github"
-```
-
----
-
-## 第4层：部署问题
-
-### 症状识别
-
-- Telegram Bot 不回复
-- Gateway 崩溃
-- 多实例冲突
-- 日志看不到消息
-
----
-
-### 问题 4.1：Telegram Bot 完全不回复
-
-**症状：**
-Gateway 运行中，但 Telegram 上发消息没有任何反应。
-
-**诊断决策树：**
-
-```mermaid
-flowchart TD
-    start[Bot 不回复] --> q1{Gateway 在运行？}
-    q1 -- 否 --> fix1[运行 nanobot gateway]
-    q1 -- 是 --> q2{终端有日志？}
-    q2 -- 无日志 --> fix2[检查 Bot Token]
-    q2 -- 有日志但报错 --> q3{什么错误？}
-    q2 -- 有日志无回复 --> fix3[检查 allowFrom]
-    q3 -- 401 --> fix4[检查 LLM API Key]
-    q3 -- 403 --> fix5[检查 allowFrom 白名单]
-```
-
-**快速检查清单：**
-
-```bash
-# 1. Gateway 是否运行
-ps aux | grep "nanobot gateway"
-
-# 2. 检查 Bot Token
-cat ~/.nanobot/config.json | grep -A 3 "telegram"
-
-# 3. 检查 allowFrom
-cat ~/.nanobot/config.json | grep "allowFrom"
-
-# 4. 获取你的 Telegram ID
-# 给 @userinfobot 发消息
-
-# 5. 查看实时日志
-nanobot gateway --verbose
-```
-
-**常见配置错误：**
-
-❌ **错误配置：**
-```json
-{
-  "channels": {
-    "telegram": {
-      "token": "sk-or-v1-...",  // 这是 LLM API Key，不是 Bot Token！
-      "allowFrom": ["@username"]  // 应该是数字 ID！
-    }
-  }
-}
-```
-
-✅ **正确配置：**
-```json
-{
-  "channels": {
-    "telegram": {
-      "token": "123456:ABCdefGHI...",  // Telegram Bot Token
-      "allowFrom": ["123456789"]  // 数字用户 ID
-    }
-  }
-}
-```
-
----
-
-### 问题 4.2：Gateway 频繁崩溃
-
-**症状：**
-```bash
-$ nanobot gateway
-... (运行一段时间后)
-Error: Connection reset by peer
-(进程退出)
-```
-
-**诊断步骤：**
-
-```bash
-# 1. 查看完整日志
-nanobot gateway --verbose 2>&1 | tee gateway.log
-
-# 2. 检查内存使用
-free -h
-
-# 3. 检查磁盘空间
-df -h
-
-# 4. 检查网络稳定性
-ping -c 10 api.telegram.org
-```
-
-**解决方案：**
-
-| 原因 | 解决方案 |
-|------|---------|
-| 网络不稳定 | 增加重试机制，使用 systemd 自动重启 |
-| 内存不足 | 减少并发会话，或升级服务器 |
-| 上下文过长 | 配置自动压缩：`"maxMessages": 50` |
-
-**使用 systemd 自动重启：**
-
-```ini
-# /etc/systemd/system/nanobot.service
-[Unit]
-Description=Nanobot Gateway
-After=network.target
-
-[Service]
-Type=simple
-User=your-username
-WorkingDirectory=/home/your-username
-ExecStart=/home/your-username/.venv/bin/nanobot gateway
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
----
-
-## 通用调试技巧
-
-### 1. 启用详细日志
-
-```bash
-# CLI 模式
-nanobot agent -m "test" --verbose
-
-# Gateway 模式
-nanobot gateway --verbose
-
-# 设置环境变量
-export NANOBOT_LOG_LEVEL=DEBUG
-nanobot gateway
-```
-
----
-
-### 2. 隔离问题层级
-
-**从底层到高层测试：**
-
-```bash
-# Level 1: 测试 Python 环境
-python --version
-
-# Level 2: 测试 nanobot 安装
 nanobot --version
-
-# Level 3: 测试 LLM 连接
-nanobot agent -m "test"
-
-# Level 4: 测试文件读取
-cat ~/.nanobot/workspace/SOUL.md
-
-# Level 5: 测试 Skill
-nanobot agent -m "请用 weather skill 查询天气"
-
-# Level 6: 测试 Gateway
-nanobot gateway
+nanobot status
+bash scripts/check-env.sh
+bash scripts/verify-config.sh
 ```
 
-**每一层都通过后，再测试下一层。**
+仓库中的诊断脚本不会调用模型，也不会输出 API Key。若你不在教程仓库根目录，先切回仓库根目录再执行。
 
----
+## 一分钟定位表 { #quick-triage }
 
-### 3. 最小化配置测试
+| 现象 | 先查哪一层 | 第一条命令 |
+|---|---|---|
+| `nanobot: command not found` | Python/虚拟环境 | `command -v python3; command -v nanobot` |
+| `401`、认证失败 | Provider 凭据是否进入当前进程 | `nanobot status` |
+| 模型不存在或不可用 | 当前 model preset 与 Provider | `bash scripts/verify-config.sh` |
+| 能回复，但人格/规则不生效 | 当前 Agent 或项目工作区 | `nanobot status` |
+| Skill 不触发 | Skill 路径、frontmatter、依赖、禁用状态 | `bash scripts/check-skill.sh exchange-rate` |
+| CLI 正常，Channel 不回复 | 插件、启用、授权、Gateway | `nanobot channels status` |
+| WebUI 打不开 | WebSocket Channel、监听地址、认证、端口 | `nanobot gateway status` |
+| 长期记忆没变化 | Consolidator 是否已有摘要、Dream 是否完成 | 在聊天中发送 `/dream-log` |
+| 文档构建失败 | 依赖、导航、内部链接 | `.venv/bin/python -m mkdocs build --strict` |
 
-如果问题难以定位，尝试最小化配置：
+只要某一层失败，就先停在这一层；不要同时修改模型、Skill 和 Channel。
 
-```json
-{
-  "providers": {
-    "openrouter": {
-      "apiKey": "your-key"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "provider": "openrouter",
-      "model": "openai/gpt-4-turbo"
-    }
-  }
-}
-```
+## 1. 安装与 Python 环境 { #install }
 
-删除所有其他配置，逐步添加，找到导致问题的配置项。
-
----
-
-## 仍然无法解决？
-
-如果按照上述步骤仍然无法解决问题，请：
-
-1. **收集信息：**
-   - OS 和 Python 版本
-   - nanobot 版本
-   - 完整的错误日志
-   - 配置文件（脱敏后）
-
-2. **搜索已知问题：**
-   - https://github.com/HKUDS/nanobot/issues
-
-3. **提交 Issue：**
-   - 使用模板：[新建 Issue](https://github.com/HKUDS/nanobot/issues/new)
-   - 提供完整的复现步骤
-
----
-
-## 附录：快速参考
-
-### 常用命令
+### `nanobot` 命令找不到
 
 ```bash
-# 查看版本
+command -v python3
+python3 --version
+python3 -m pip --version
+command -v nanobot
+```
+
+常见原因：
+
+- 新终端没有重新激活虚拟环境。
+- `pip` 与 `python` 来自不同环境。
+- 安装的是别的包或版本。
+
+教程正文固定使用 v0.2.2：
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install "nanobot-ai==0.2.2"
 nanobot --version
+```
 
-# 初始化
-nanobot onboard
+不要看到安装错误就立刻换未审计的主线版本。先确认 Python 版本、虚拟环境和包索引是否正常。
 
-# CLI 模式
-nanobot agent
-nanobot agent -m "消息"
+### 文档依赖与 nanobot 运行依赖混在一起
 
-# Gateway 模式
+构建本站只需要仓库的文档依赖：
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m mkdocs build --strict
+```
+
+`requirements.txt` 服务于文档站，不代表安装了 Hero 示例所需的模型 SDK，也不代表安装了 nanobot 本体。
+
+### 缺少系统命令
+
+```bash
+command -v curl
+command -v git
+command -v jq
+```
+
+缺少 `jq` 时，`verify-config.sh` 会明确退出。只安装你确实需要的依赖；Skill 自己声明的依赖留到 Skill 层再查。
+
+## 2. 配置、Provider 与模型 { #config }
+
+### 推荐的恢复入口
+
+新配置优先用向导或 WebUI维护：
+
+```bash
+nanobot onboard --wizard
+nanobot status
+```
+
+推荐使用命名 `modelPresets`，并让 `agents.defaults.modelPreset` 指向当前预设。直接填写 `agents.defaults.provider` / `model` 是兼容方式，不是新教程的首选路径。
+
+### `401` 或 Provider 认证失败
+
+只检查“有没有值”，不要回显值：
+
+```bash
+test -n "${PROVIDER_API_KEY:-}" && echo "Provider 凭据已设置" || echo "Provider 凭据未设置"
+nanobot status
+```
+
+如果交互终端可用、后台 Gateway 不可用，通常是两者没有继承同一环境。重新启动后台进程或服务，让服务管理器显式加载凭据；不要把真实 Key 写进 unit、仓库或 Issue。
+
+仍需检查配置结构时，只打印名称和键，不打印对象值：
+
+```bash
+jq '{
+  activePreset: .agents.defaults.modelPreset,
+  presetNames: ((.modelPresets // {}) | keys),
+  providerNames: ((.providers // {}) | keys)
+}' ~/.nanobot/config.json
+```
+
+### 模型不存在或拒绝访问
+
+模型目录会变化，本手册不固定任何“推荐模型名”。按以下顺序查：
+
+1. 在当前 Provider 控制台确认模型标识仍可用。
+2. 确认账号有权限、余额或配额。
+3. 确认活动 preset 指向同一个 Provider。
+4. 回到 CLI 做最小请求：
+
+```bash
+nanobot agent -m "只回复：连接正常"
+```
+
+CLI 也失败时先修 Provider；CLI 成功而 Channel 失败时再进入 Channel 层。
+
+### 手工编辑后配置损坏
+
+先做语法检查，不要用一个教程片段覆盖整个文件：
+
+```bash
+python -m json.tool ~/.nanobot/config.json >/dev/null
+bash scripts/verify-config.sh
+```
+
+配置片段只用于“合并字段”。保留现有的 Provider、`modelPresets`、工具和 Channel，再做最小修改。无法确认合并结果时，回到 `nanobot onboard --wizard` 或 WebUI。
+
+## 3. Bootstrap、工作区与长期状态 { #workspace }
+
+### 改了人格或规则，但回复没变化
+
+v0.2.2 自动加载的 Bootstrap 是：
+
+- `AGENTS.md`：项目或实例规则
+- `SOUL.md`：行为策略与表达风格
+- `USER.md`：用户偏好和背景
+
+默认 CLI/Channel 使用 Agent 工作区。WebUI 选择项目后，项目根同名文件会成为当前 turn 的 Bootstrap；这时继续改默认 Agent 工作区，当前项目对话可能看不到变化。
+
+安全地确认文件位置：
+
+```bash
+nanobot status
+find ~/.nanobot/workspace -maxdepth 2 -type f -print
+```
+
+再用一个差异明显、但不影响安全边界的规则做测试。不要同时修改三份文件，也不要把工具硬权限写成 Prompt 后就认为已经隔离。
+
+### 工作区工具越界或读不到文件
+
+先确认当前配置是否启用了工作区限制，以及你是在 Agent 工作区还是 WebUI 项目工作区：
+
+```bash
+bash scripts/verify-config.sh
+nanobot status
+```
+
+`tools.restrictToWorkspace` 是文件/命令边界的一部分；符号链接、子进程、网络访问和容器权限还需要各自的实现或系统隔离。遇到拒绝时不要把限制全局关闭，先把目标文件移入专用工作区并缩小权限。
+
+## 4. Skill 不触发或执行失败 { #skills }
+
+### 先检查目录和 frontmatter
+
+工作区 Skill 的基本路径是：
+
+```text
+~/.nanobot/workspace/skills/<skill-name>/SKILL.md
+```
+
+使用仓库脚本做只读检查：
+
+```bash
+bash scripts/check-skill.sh exchange-rate
+```
+
+再确认：
+
+1. 目录名和 `SKILL.md` 大小写正确。
+2. frontmatter 至少有清晰的 `name` 与 `description`。
+3. Skill 没有被当前配置禁用。
+4. 所需命令、环境变量或文件存在。
+5. 用户请求确实匹配描述；不要只靠在问题里硬写 Skill 名称掩盖描述问题。
+
+### Skill 被发现，但工具失败
+
+把“选择 Skill”和“执行步骤”分开测试：
+
+- 模型是否读取了目标 `SKILL.md`？
+- 失败发生在输入校验、命令依赖、HTTP、路径还是解析？
+- 失败输出是否被截断，是否包含可行动的错误？
+
+需要网络的天气、汇率等案例只做人工冒烟。CI 不应访问公共 API，也不应依赖实时值。
+
+## 5. Channel、配对与 Gateway { #channels }
+
+### 先分清发现、启用、运行
+
+```bash
+nanobot plugins list
+nanobot channels status
 nanobot gateway
+```
+
+- `plugins list` 看得到：实现已发现。
+- `channels status` 显示启用：配置中的 `enabled` 生效。
+- Gateway 日志显示连接成功：运行时真的连上平台。
+
+三者不是一回事。Channel 没启用时，不要先排查模型；Gateway 没运行时，不要反复修改白名单。
+
+### Telegram 不回复
+
+按以下顺序：
+
+1. 同一环境下 `nanobot agent -m "测试"` 能回复。
+2. `nanobot channels status` 显示 Telegram 启用。
+3. 只检查 Token 环境变量是否存在，不打印 Token。
+4. 前台运行 `nanobot gateway --verbose`，观察连接错误。
+5. 核对 `allowFrom` 的精确数字 ID 或不带 `@` 的用户名；也可省略它并走配对。
+
+```bash
+test -n "${TELEGRAM_BOT_TOKEN:-}" && echo "Telegram Token 已设置" || echo "Telegram Token 未设置"
+nanobot channels status
 nanobot gateway --verbose
-
-# 查看配置
-cat ~/.nanobot/config.json
-
-# 查看工作区
-ls -la ~/.nanobot/workspace/
-
-# 查看 Skills
-ls -la ~/.nanobot/workspace/skills/
 ```
 
----
+如果私聊返回配对码，在本机批准：
 
-### 重要文件路径
-
-```
-~/.nanobot/
-├── config.json           # 配置文件
-└── workspace/
-    ├── SOUL.md           # 人格
-    ├── AGENTS.md         # 规则
-    ├── USER.md           # 用户画像
-    ├── TOOLS.md          # 工具约束
-    ├── memory/
-    │   └── MEMORY.md     # 长期记忆
-    └── skills/           # 自定义 Skills
-        └── skill-name/
-            └── SKILL.md
+```bash
+nanobot agent -m "/pairing list"
+nanobot agent -m "/pairing approve ABCD-EFGH"
 ```
 
----
+群聊默认通常需要提及 Bot；先让私聊成功，再调群组策略。Discord 还需启用 Message Content Intent；Slack 要区分 `botToken` 与 `appToken`。完整配置见[部署到 Telegram](../zero/05-deploy-telegram.md)。
 
-### 有用的资源
+### Gateway 后台进程
 
-- [GitHub 仓库](https://github.com/HKUDS/nanobot)
-- [官方文档](https://github.com/HKUDS/nanobot)
-- [示例 Skills](https://github.com/HKUDS/nanobot/tree/main/nanobot/skills)
+优先使用内置生命周期命令：
+
+```bash
+nanobot gateway --background
+nanobot gateway status
+nanobot gateway logs --no-follow
+nanobot gateway logs
+nanobot gateway restart
+nanobot gateway stop
+```
+
+长期随登录启动时使用：
+
+```bash
+nanobot gateway install-service --dry-run
+nanobot gateway install-service
+```
+
+手写 systemd 只是高级回退，不是默认排障步骤。不要为了恢复运行直接复制未知 unit 到系统目录或改成 root 用户。
+
+## 6. WebUI、端口与认证 { #webui }
+
+WebUI 由 WebSocket Channel 提供，默认浏览器地址是 `127.0.0.1:8765`；Gateway 健康状态端口不是 WebUI 端口。
+
+```bash
+nanobot channels status
+nanobot gateway status
+nanobot gateway logs --no-follow
+```
+
+本机打不开时依次检查：
+
+1. WebSocket Channel 是否启用。
+2. `8765` 是否被占用。
+3. Gateway 是否仍在运行。
+4. WebUI 认证环境变量是否进入 Gateway 进程。
+
+容器内服务要监听 `0.0.0.0` 才能接受端口转发，但宿主机应优先只发布到 `127.0.0.1`，并启用 Token/密码认证。不要为了快速测试把无认证 WebUI 暴露到公网。
+
+## 7. Docker 部署 { #docker }
+
+仓库约定所有 Docker 命令都使用 `sudo`。先检查状态和日志，不要先删容器或卷：
+
+```bash
+sudo docker ps -a
+sudo docker logs --tail 200 nanobot-gateway
+sudo docker compose ps
+sudo docker compose logs --no-color --tail 200 nanobot-gateway
+```
+
+常见边界：
+
+- 容器以非 root 用户运行，配置挂载到 `/home/nanobot/.nanobot`。
+- 宿主目录权限必须允许容器运行用户读取和写入必要状态。
+- Provider、Channel 和 WebUI 凭据通过受保护的环境文件注入。
+- 不要把环境文件提交到 Git，也不要用会展开环境变量的诊断命令公开它。
+
+完整镜像构建、挂载和端口示例见 [Docker 部署](../zero/05-deploy-telegram.md#c-docker)。
+
+## 8. Session、Memory 与 Dream { #memory }
+
+先区分四种状态：
+
+| 状态 | 位置或来源 | 何时进入上下文 |
+|---|---|---|
+| 当前 Session | `sessions/*.jsonl` | 当前会话历史窗口 |
+| Session 归档摘要 | Session metadata | 当前 Session 已压缩时 |
+| Recent History | `memory/history.jsonl` 中 Dream cursor 之后的摘要 | 非临时 turn，且存在待处理摘要时 |
+| 长期 Memory | `memory/MEMORY.md` | 非空且不再是初始模板时 |
+
+### `/dream` 提示没有新内容
+
+短对话可能还没触发 Consolidator，因此 `history.jsonl` 没有新的归档。先继续正常使用，不要为了触发 Dream 人为灌入无意义对话。
+
+### 查看或恢复 Dream 修改
+
+```text
+/dream
+/dream-log
+/dream-log <sha>
+/dream-restore
+/dream-restore <sha>
+```
+
+`/dream-log` 没有版本时，可能是 Dream 尚未产生文件变化，或 Agent 工作区无法初始化独立版本记录。恢复前先查看目标 diff；恢复会创建新的安全提交，不要直接编辑内部游标。
+
+## 9. 文档与示例构建 { #docs-build }
+
+从仓库根目录执行：
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m mkdocs build --strict
+PYTHONPYCACHEPREFIX=/tmp/byte-of-nanobot-pyc python -m compileall -q docs/zh-cn/examples/hero
+bash -n scripts/*.sh
+```
+
+严格构建失败时先读第一条实际错误：
+
+- 页面不存在：检查 `mkdocs.yml` 与文件名。
+- 相对链接失效：从当前 Markdown 文件所在目录重新计算。
+- 锚点失效：以目标页面当前标题生成的锚点为准。
+- 示例编译失败：先修语法，不要用真实 API 请求代替离线检查。
+
+## 10. 提交 Issue 前的最小信息 { #report }
+
+可以提供：
+
+- 操作系统类型与 Python、nanobot 版本。
+- `nanobot status` 的脱敏结果。
+- 最小复现步骤和预期/实际行为。
+- 去除凭据、用户消息、绝对个人路径后的相关日志片段。
+- 问题发生在 CLI、WebUI、哪个 Channel 或哪类后台任务。
+
+不要提供：
+
+- 完整 `config.json` 或环境文件。
+- API Key、Bot Token、WebUI 密码、配对码。
+- 未脱敏的 Session、Memory、个人工作区文件。
+- 为了复现而关闭全部安全限制的公网实例。
+
+先搜索 [nanobot Issues](https://github.com/HKUDS/nanobot/issues)，仍无法定位时再按模板提交最小复现。
+
+## 常用只读命令
+
+```bash
+nanobot --version
+nanobot status
+nanobot plugins list
+nanobot channels status
+nanobot gateway status
+nanobot gateway logs --no-follow
+bash scripts/check-env.sh
+bash scripts/verify-config.sh
+bash scripts/check-skill.sh exchange-rate
+```
+
+这份手册是唯一完整排障正文；[排障快速索引](troubleshooting.md)只负责按症状把你带到这里。
