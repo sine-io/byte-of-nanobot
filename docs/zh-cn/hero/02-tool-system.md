@@ -68,7 +68,7 @@ class Tool(ABC):
         }
 ```
 
-nanobot 的 `Tool` 基类（`nanobot/agent/tools/base.py`）还包含参数校验和类型转换，但核心就是这四个抽象属性。
+nanobot v0.2.2 的 [`Tool` 基类](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/tools/base.py)还包含参数校验和类型转换，但核心仍是工具名称、描述、参数和执行入口。
 
 ## 第二步：实现具体工具
 
@@ -200,7 +200,7 @@ class WriteFileTool(Tool):
 
 ## 第三步：工具注册表
 
-管理所有工具的容器——对应 `nanobot/agent/tools/registry.py`（只有 71 行）：
+管理所有工具的容器。教学版对应 v0.2.2 的 [`ToolRegistry`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/tools/registry.py)：
 
 ```python
 class ToolRegistry:
@@ -231,7 +231,7 @@ class ToolRegistry:
 
 ## 第四步：ReAct 循环——Agent 的核心
 
-这是整个教程最关键的代码。对应 `nanobot/agent/loop.py:180-257`：
+这是整个教程最关键的代码。下面的 `agent_loop()` 是便于独立阅读的缩小模型；在 nanobot v0.2.2 中，同一类执行闭环主要由 [`AgentRunner`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/runner.py)负责，而不是全部堆在 `AgentLoop` 中。
 
 > 先说明一个教学上的妥协：下面的 `agent_loop` 写成了 `async`，但示例里仍然直接调用同步版 `OpenAI` 客户端。这足够帮助你看懂 ReAct 循环，却不代表它已经是非阻塞实现。真实项目里应改用异步客户端，或把这类阻塞 I/O 丢进线程池。
 
@@ -248,7 +248,7 @@ async def agent_loop(
 ) -> str:
     """
     ReAct 循环：LLM 思考 → 调用工具 → 观察结果 → 再思考。
-    对应 nanobot/agent/loop.py 的 _run_agent_loop 方法。
+    教学映射：AgentRunner.run / AgentRunner._run_core。
     """
     tool_defs = tools.get_definitions()
 
@@ -305,6 +305,40 @@ async def agent_loop(
    - 如果 LLM 没有 `tool_calls` → 它认为可以直接回答了 → 返回文本
 3. **循环**：最多循环 N 次，防止无限调用
 
+### v0.2.2 的真实职责边界
+
+```mermaid
+flowchart LR
+    channel[Channel / MessageBus] --> loop[AgentLoop]
+    loop -->|AgentRunSpec| runner[AgentRunner]
+    runner --> provider[LLMProvider 流式或普通响应]
+    runner --> registry[ToolRegistry]
+    registry --> tool[具体 Tool]
+    tool --> registry
+    registry --> runner
+    runner -->|AgentRunResult| loop
+    loop --> session[保存 Session]
+    loop --> outbound[OutboundMessage]
+```
+
+| 真实组件 | 负责什么 | 不负责什么 |
+|---|---|---|
+| `AgentRunner` | 接收 `AgentRunSpec`；请求 Provider；汇集流式文本、reasoning 和工具调用；执行工具；追加工具结果；控制迭代、超时与最终结果 | 不选择 Channel，不创建业务 Session，不决定回复发到哪里 |
+| `AgentLoop` | 从 MessageBus 接收入站消息；解析会话键和工作区；构建 Bootstrap、Memory、Skills 与历史上下文；把配置装进 `AgentRunSpec`；保存新消息；组装 `OutboundMessage` | 不再自己实现 Provider/工具的底层迭代算法 |
+| [`LLMProvider`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/providers/base.py) | 把不同模型接口规范化为 `LLMResponse` / `ToolCallRequest`，提供普通或流式请求 | 不执行工具 |
+| `ToolRegistry` | 暴露工具 Schema，并按名字分派实际工具 | 不调用模型，也不管理会话 |
+
+具体调用顺序是：
+
+1. `AgentLoop` 的 turn 状态依次恢复 Session、压缩历史、处理命令并构建上下文。
+2. `AgentLoop._run_agent_loop()` 创建 `AgentRunSpec`，然后调用 `self.runner.run(...)`。这个同名方法是产品层适配器，不是底层 ReAct 实现。
+3. `AgentRunner._request_model()` 根据 Hook 能力选择 Provider 的 `chat_stream_with_retry()` 或 `chat_with_retry()`；流式正文、reasoning 和工具调用增量通过 Hook/进度回调交还 Channel。
+4. `AgentRunner._run_core()` 判断规范化响应是否请求工具；若请求，就追加 assistant tool-call 消息并进入 `_execute_tools()`。
+5. 工具结果以 `role: "tool"` 追加到消息，再进入下一次 Provider 请求；无工具调用时形成 `AgentRunResult`。
+6. `AgentLoop` 保存本轮新增消息，更新 Session，并把最终内容组装成与原 Channel 对应的出站消息。
+
+这种拆分很重要：CLI、WebUI、Telegram 或定时任务可以复用相同执行核心，同时各自保留会话、工作区和回复目标。
+
 ### 如果你只读 5 分钟，就先看这 3 段
 
 - `Tool.to_schema()`：模型如何知道有哪些工具
@@ -316,7 +350,7 @@ async def agent_loop(
 把以上所有部分组合起来：
 
 ```python
-"""mini_agent.py — 带工具系统的 Agent，~200 行"""
+"""mini_agent.py — 带工具系统的教学 Agent"""
 
 import asyncio
 import json
@@ -548,10 +582,11 @@ Bot: 运行结果：Hello, World!
 
 | 我们的代码 | nanobot 的代码 | 区别 |
 |-----------|---------------|------|
-| `Tool` 基类 | `nanobot/agent/tools/base.py` | nanobot 增加了参数校验和类型转换 |
-| `ToolRegistry` | `nanobot/agent/tools/registry.py` | nanobot 增加了错误提示引导 LLM 换方法 |
-| `agent_loop` | `nanobot/agent/loop.py:180-257` | nanobot 增加了进度通知和 think 标签清理 |
-| `ExecTool` | `nanobot/agent/tools/shell.py` | nanobot 用正则做更细粒度的安全防护 |
+| `Tool` 基类 | [`agent/tools/base.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/tools/base.py) | nanobot 增加参数校验、类型转换和运行上下文 |
+| `ToolRegistry` | [`agent/tools/registry.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/tools/registry.py) | nanobot 统一 Schema 暴露、分派和错误反馈 |
+| `agent_loop` 的 Provider/工具迭代 | [`agent/runner.py` 的 `AgentRunner`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/runner.py) | nanobot 支持流式增量、Hook、并发工具、检查点、错误恢复与迭代预算 |
+| `main()` 的会话和输入输出编排 | [`agent/loop.py` 的 `AgentLoop`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/loop.py) | nanobot 连接 MessageBus、工作区、Session、上下文构建和出站消息 |
+| `ExecTool` | [`agent/tools/shell.py`](https://github.com/HKUDS/nanobot/blob/e2e75c913f3524d4bc5b23487a4eed5329eef182/nanobot/agent/tools/shell.py) | nanobot 增加超时、输出预算、工作区守卫和可选执行沙箱 |
 
 ## 还缺什么？
 
