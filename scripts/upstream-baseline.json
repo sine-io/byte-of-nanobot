@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "stable": {
+      "version": "v0.2.2",
+      "sha": "e2e75c913f3524d4bc5b23487a4eed5329eef182",
+      "audited_sources": [
+        "blob:Dockerfile",
+        "blob:docker-compose.yml",
+        "blob:nanobot/agent/context.py",
+        "blob:nanobot/agent/loop.py",
+        "blob:nanobot/agent/memory.py",
+        "blob:nanobot/agent/runner.py",
+        "blob:nanobot/agent/skills.py",
+        "blob:nanobot/agent/subagent.py",
+        "blob:nanobot/agent/tools/base.py",
+        "blob:nanobot/agent/tools/mcp.py",
+        "blob:nanobot/agent/tools/registry.py",
+        "blob:nanobot/agent/tools/shell.py",
+        "blob:nanobot/api/server.py",
+        "blob:nanobot/bus/events.py",
+        "blob:nanobot/bus/queue.py",
+        "blob:nanobot/channels/base.py",
+        "blob:nanobot/channels/discord.py",
+        "blob:nanobot/channels/manager.py",
+        "blob:nanobot/channels/registry.py",
+        "blob:nanobot/channels/slack.py",
+        "blob:nanobot/cli/commands.py",
+        "blob:nanobot/command/builtin.py",
+        "blob:nanobot/cron/service.py",
+        "blob:nanobot/gateway/service.py",
+        "blob:nanobot/nanobot.py",
+        "blob:nanobot/providers/base.py",
+        "blob:nanobot/providers/registry.py",
+        "blob:nanobot/security/network.py",
+        "blob:nanobot/security/workspace_access.py",
+        "blob:nanobot/security/workspace_policy.py",
+        "blob:nanobot/session/manager.py",
+        "blob:nanobot/skills/memory/SKILL.md",
+        "tree:",
+        "tree:nanobot/agent/tools",
+        "tree:nanobot/providers",
+        "tree:nanobot/webui"
+      ]
+    },
+    "main": {
+      "version": "main@b189a376",
+      "sha": "b189a37648e4fa64f662b15de4f78ffd0bab403b",
+      "audited_sources": [
+        "blob:nanobot/agent/automation_turns.py",
+        "blob:nanobot/agent/context.py",
+        "blob:nanobot/agent/context_governance.py",
+        "blob:nanobot/agent/goal_permission.py",
+        "blob:nanobot/agent/model_presets.py",
+        "blob:nanobot/agent/model_runtime.py",
+        "blob:nanobot/agent/skills.py",
+        "blob:nanobot/agent/subagent.py",
+        "blob:nanobot/agent/tools/long_task.py",
+        "blob:nanobot/agent/tools/mcp.py",
+        "blob:nanobot/api/runtime.py",
+        "blob:nanobot/api/server.py",
+        "blob:nanobot/channels/contracts.py",
+        "blob:nanobot/channels/discord/runtime.py",
+        "blob:nanobot/channels/plugin.py",
+        "blob:nanobot/channels/registry.py",
+        "blob:nanobot/channels/slack/runtime.py",
+        "blob:nanobot/channels/telegram/manifest.py",
+        "blob:nanobot/channels/telegram/runtime.py",
+        "blob:nanobot/channels/websocket/runtime.py",
+        "blob:nanobot/command/builtin.py",
+        "blob:nanobot/nanobot.py",
+        "blob:nanobot/skills/memory/SKILL.md",
+        "blob:nanobot/triggers/local_store.py",
+        "blob:nanobot/webui/session_automations.py",
+        "blob:nanobot/webui/workspaces.py",
+        "tree:",
+        "tree:nanobot/webui"
+      ]
+    }
+  },
+  "key_modules": [
+    {
+      "id": "stable-agent-runner",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/agent/runner.py"
+    },
+    {
+      "id": "stable-agent-loop",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/agent/loop.py"
+    },
+    {
+      "id": "stable-context",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/agent/context.py"
+    },
+    {
+      "id": "stable-memory",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/agent/memory.py"
+    },
+    {
+      "id": "stable-skills",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/agent/skills.py"
+    },
+    {
+      "id": "stable-message-bus",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/bus/queue.py"
+    },
+    {
+      "id": "stable-channel-registry",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/channels/registry.py"
+    },
+    {
+      "id": "stable-cron",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/cron/service.py"
+    },
+    {
+      "id": "stable-gateway-service",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/gateway/service.py"
+    },
+    {
+      "id": "stable-mcp",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/agent/tools/mcp.py"
+    },
+    {
+      "id": "stable-api",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/api/server.py"
+    },
+    {
+      "id": "stable-sdk",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/nanobot.py"
+    },
+    {
+      "id": "stable-workspace-policy",
+      "revision": "stable",
+      "kind": "blob",
+      "path": "nanobot/security/workspace_policy.py"
+    },
+    {
+      "id": "main-context-ownership",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/agent/context.py"
+    },
+    {
+      "id": "main-context-governance",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/agent/context_governance.py"
+    },
+    {
+      "id": "main-model-runtime",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/agent/model_runtime.py"
+    },
+    {
+      "id": "main-automation-turns",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/agent/automation_turns.py"
+    },
+    {
+      "id": "main-local-triggers",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/triggers/local_store.py"
+    },
+    {
+      "id": "main-goal-permission",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/agent/goal_permission.py"
+    },
+    {
+      "id": "main-channel-plugin",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/channels/plugin.py"
+    },
+    {
+      "id": "main-channel-registry",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/channels/registry.py"
+    },
+    {
+      "id": "main-api-runtime",
+      "revision": "main",
+      "kind": "blob",
+      "path": "nanobot/api/runtime.py"
+    }
+  ],
+  "command_assertions": {
+    "required": [
+      {
+        "id": "onboard-wizard",
+        "pattern": "\\bnanobot\\s+onboard\\s+--wizard\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "status",
+        "pattern": "\\bnanobot\\s+status\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "agent-logs",
+        "pattern": "\\bnanobot\\s+agent\\s+--logs\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "channels-status",
+        "pattern": "\\bnanobot\\s+channels\\s+status\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "gateway-background",
+        "pattern": "\\bnanobot\\s+gateway\\s+--background\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "gateway-status",
+        "pattern": "\\bnanobot\\s+gateway\\s+status\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "gateway-logs",
+        "pattern": "\\bnanobot\\s+gateway\\s+logs\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "gateway-restart",
+        "pattern": "\\bnanobot\\s+gateway\\s+restart\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "gateway-stop",
+        "pattern": "\\bnanobot\\s+gateway\\s+stop\\b",
+        "minimum_occurrences": 1
+      },
+      {
+        "id": "gateway-install-service",
+        "pattern": "\\bnanobot\\s+gateway\\s+install-service\\b",
+        "minimum_occurrences": 1
+      }
+    ],
+    "forbidden": [
+      {
+        "id": "agent-verbose",
+        "pattern": "\\bnanobot\\s+agent\\s+(?:--verbose|-v)(?=\\s|[^A-Za-z0-9_-]|$)",
+        "reason": "v0.2.2 uses nanobot agent --logs for runtime diagnostics"
+      },
+      {
+        "id": "legacy-log-env",
+        "pattern": "\\bNANOBOT_LOG_LEVEL\\b",
+        "reason": "the tutorial must not advertise the removed logging environment variable"
+      }
+    ]
+  },
+  "legacy_path_assertions": [
+    {
+      "id": "legacy-requirements",
+      "pattern": "\\brequirements-docs\\.txt\\b",
+      "reason": "documentation dependencies live in requirements.txt"
+    },
+    {
+      "id": "legacy-hero-directory",
+      "pattern": "(?<![A-Za-z0-9_/])build/(?:README|0[1-6]-)[A-Za-z0-9_.-]*\\.md",
+      "reason": "Hero chapters live under docs/zh-cn/hero"
+    },
+    {
+      "id": "legacy-appendix-path",
+      "pattern": "\\bappendix-(?:environment-precheck|troubleshooting(?:-guide)?)\\.md\\b",
+      "reason": "appendices live under docs/zh-cn/appendix"
+    },
+    {
+      "id": "legacy-example-directory",
+      "pattern": "(?:docs/zh-cn/)?examples/(?!hero(?:/|\\b))",
+      "reason": "the maintained teaching snapshots live under docs/zh-cn/examples/hero"
+    },
+    {
+      "id": "legacy-history-file",
+      "pattern": "(?<![A-Za-z0-9_])HISTORY\\.md\\b",
+      "reason": "the maintained history store is memory/history.jsonl"
+    }
+  ],
+  "tools_bootstrap_assertion": {
+    "positive_patterns": [
+      "BOOTSTRAP_FILES\\s*=\\s*\\[[^\\]]*TOOLS\\.md",
+      "(?:Bootstrap|启动配置文件)[^\\n]{0,180}TOOLS\\.md",
+      "TOOLS\\.md[^\\n]{0,140}(?:自动(?:加载|读取|注入)|(?:作为|属于|是)[^\\n]{0,40}Bootstrap)"
+    ],
+    "negative_markers": [
+      "不是",
+      "并非",
+      "不再",
+      "不会",
+      "不从",
+      "不要",
+      "未被",
+      "删除",
+      "禁止",
+      "误述",
+      "不存在"
+    ]
+  }
+}
