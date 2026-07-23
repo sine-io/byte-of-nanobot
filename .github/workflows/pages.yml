@@ -41,6 +41,9 @@ jobs:
       - name: Check shell scripts
         run: bash -n scripts/*.sh
 
+      - name: Check upstream drift
+        run: python scripts/check_upstream_drift.py --report
+
       - name: Build site strictly
         run: python -m mkdocs build --strict
 
